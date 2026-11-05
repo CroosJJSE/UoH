@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --canvas-base: #111210;
+    --canvas-elevated: #181714;
+    --surface-card: #22201D;
+    --surface-hover: #2B2824;
+    --text-primary: #F5EFE3;
+    --text-secondary: #A8A196;
+    --text-muted: #6E675D;
+    --accent-amber: #E8B45A;
+    --accent-amber-hover: #D4A045;
+    --border-subtle: #2E2A25;
+    --border-highlight: #423D35;
+  }
+
+  body {
+    background-color: #111210;
+    color: #F5EFE3;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  h1, h2, h3, h4, .font-editorial {
+    font-family: 'Newsreader', Georgia, serif;
+  }
+}
+
+/* Custom scrollbar for warm dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #111210;
+}
+::-webkit-scrollbar-thumb {
+  background: #2E2A25;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #423D35;
+}

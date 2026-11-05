@@ -1,0 +1,6 @@
+{
+  "name": "University of Hathbodhiya",
+  "description": "An intimate community archive and memory sanctuary preserving recipes, art, writings, songs, and fellowship wisdom shared at Hathbodhiya.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
