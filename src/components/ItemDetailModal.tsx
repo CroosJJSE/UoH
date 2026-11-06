@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArchiveItem, CommunityMember } from '../types';
-import { X, Star, MessageSquare, Clock, Users, Sparkles, Music2, Check, Copy } from 'lucide-react';
+import { X, Star, MessageSquare, Music2, Check, Copy } from 'lucide-react';
 
 interface ItemDetailModalProps {
   item: ArchiveItem | null;
@@ -77,15 +77,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         </div>
 
         {/* Title */}
-        <h2 className="font-editorial text-2xl sm:text-3xl lg:text-4xl text-[#F5EFE3] font-medium leading-tight mb-2">
+        <h2 className="font-editorial text-2xl sm:text-3xl text-[#F5EFE3] font-medium leading-tight mb-4">
           {item.title}
         </h2>
-
-        {item.subtitle && (
-          <p className="font-editorial text-lg text-[#E8B45A] italic mb-6">
-            {item.subtitle}
-          </p>
-        )}
 
         {/* Contributor Row */}
         <div className="flex items-center gap-3 p-3 rounded-xl bg-[#22201D] border border-[#2E2A25] mb-6">
@@ -106,7 +100,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
         {/* Media / Image Display */}
         {item.images && item.images.length > 0 && (
-          <div className="mb-8 rounded-xl overflow-hidden border border-[#2E2A25] bg-[#111210]">
+          <div className="mb-6 rounded-xl overflow-hidden border border-[#2E2A25] bg-[#111210]">
             <img
               src={item.images[0]}
               alt={item.title}
@@ -163,56 +157,25 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </div>
         )}
 
-        {/* Main Content Prose */}
-        <div className="prose prose-invert max-w-none mb-8">
-          <p className="text-sm sm:text-base text-[#F5EFE3]/90 leading-relaxed whitespace-pre-line">
-            {item.content}
-          </p>
-        </div>
+        {/* Non-Recipe Content Prose (Only for Museum, Albums, Wisdom) */}
+        {!isRecipe && item.content && (
+          <div className="prose prose-invert max-w-none mb-8">
+            <p className="text-sm sm:text-base text-[#F5EFE3]/90 leading-relaxed whitespace-pre-line">
+              {item.content}
+            </p>
+          </div>
+        )}
 
-        {/* Recipe Specific Sections: Ingredients & Steps */}
+        {/* Recipe Specific Sections: Ingredients & Steps ONLY */}
         {isRecipe && item.metadata && (
-          <div className="mb-8 space-y-6 p-6 rounded-xl bg-[#22201D] border border-[#2E2A25]">
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#2E2A25]">
-              <h3 className="font-editorial text-2xl text-[#F5EFE3] font-medium">
-                Cooking Instructions
-              </h3>
-              <div className="flex items-center gap-4 text-xs text-[#A8A196]">
-                {item.metadata.prepTime && (
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#E8B45A]" />
-                    <span>{item.metadata.prepTime}</span>
-                  </span>
-                )}
-                {item.metadata.servings && (
-                  <span className="flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-[#E8B45A]" />
-                    <span>{item.metadata.servings}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* The Secret Touch */}
-            {item.metadata.secretTouch && (
-              <div className="p-4 rounded-lg bg-[#181714] border border-[#E8B45A]/40 text-xs text-[#A8A196]">
-                <div className="flex items-center gap-1.5 text-[#E8B45A] font-semibold mb-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>The Hathbodhiya Secret Touch</span>
-                </div>
-                <p className="italic text-[#F5EFE3] leading-relaxed">
-                  &ldquo;{item.metadata.secretTouch}&rdquo;
-                </p>
-              </div>
-            )}
-
+          <div className="mb-8 space-y-6 p-5 rounded-xl bg-[#22201D] border border-[#2E2A25]">
             {/* Ingredients with interactive checkboxes */}
             {item.metadata.ingredients && item.metadata.ingredients.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#E8B45A] mb-3">
-                  Ingredients (Tap to check off while cooking)
+                  Ingredients (Tap to check off)
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1.5">
                   {item.metadata.ingredients.map((ing, idx) => {
                     const isChecked = !!checkedIngredients[idx];
                     return (
@@ -244,7 +207,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             {item.metadata.steps && item.metadata.steps.length > 0 && (
               <div className="pt-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#E8B45A] mb-3">
-                  Step-by-Step Method
+                  Step-by-Step Instructions
                 </h4>
                 <ol className="space-y-3">
                   {item.metadata.steps.map((st, idx) => (
@@ -266,7 +229,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           <div className="flex items-center gap-2">
             <Star className="w-5 h-5 fill-[#E8B45A] text-[#E8B45A]" />
             <span className="text-sm font-semibold text-[#F5EFE3] tabular-nums">
-              {item.starsCount} community stars received
+              {item.starsCount} community stars
             </span>
           </div>
 
@@ -279,7 +242,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             }`}
           >
             <Star className={`w-4 h-4 ${isStarred ? 'fill-[#111210]' : ''}`} />
-            <span>{isStarred ? 'Starred with Gratitude' : 'Give a Star'}</span>
+            <span>{isStarred ? 'Starred' : 'Give a Star'}</span>
           </button>
         </div>
 
@@ -329,7 +292,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   rows={2}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={`Write a reflection or memory as ${currentUser.name}...`}
+                  placeholder={`Write a reflection as ${currentUser.name}...`}
                   className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none leading-relaxed"
                 />
                 <div className="flex justify-end mt-2">
@@ -349,7 +312,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           <div className="space-y-4">
             {item.comments.length === 0 ? (
               <p className="text-xs text-[#6E675D] italic">
-                No reflections added yet. Be the first to share your thoughts on this memory.
+                No reflections added yet. Be the first to share your thoughts.
               </p>
             ) : (
               item.comments.map((comment) => (

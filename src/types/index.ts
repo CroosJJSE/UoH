@@ -32,7 +32,6 @@ export interface ArchiveItem {
   category: ArchiveCategory;
   subCategory?: string;
   title: string;
-  subtitle?: string;
   content: string;
   images: string[];
   author: ArchiveAuthor;
@@ -44,9 +43,6 @@ export interface ArchiveItem {
   metadata?: {
     ingredients?: string[];
     steps?: string[];
-    prepTime?: string;
-    servings?: string;
-    secretTouch?: string;
     medium?: string;
     yearCreated?: string;
     scriptureVerse?: string;
@@ -87,7 +83,6 @@ export interface ContributionDraft {
   category: ArchiveCategory;
   subCategory: string;
   title: string;
-  subtitle?: string;
   content: string;
   images: string[];
   metadata?: ArchiveItem['metadata'];

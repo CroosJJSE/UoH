@@ -31,7 +31,7 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
       id: 'recipes' as CategoryType,
       title: 'Recipe Book',
       subtitle: 'Comforting Fellowship Dishes',
-      description: 'Every Sabbath claypot stew, herbal chicken, and midnight milk tea cooked for hungry students, with secret touches and steps.',
+      description: 'Every Sabbath claypot stew, herbal chicken, and midnight milk tea cooked for hungry students, with ingredients and instructions.',
       icon: UtensilsCrossed,
       count: counts.recipes,
       countLabel: 'recipes documented',

@@ -42,11 +42,7 @@ export const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({
             {item.title}
           </h2>
 
-          {item.subtitle && (
-            <p className="font-editorial text-lg text-[#E8B45A]/90 italic">
-              {item.subtitle}
-            </p>
-          )}
+
 
           <p className="text-sm sm:text-base text-[#A8A196] leading-relaxed line-clamp-4">
             {item.content}
