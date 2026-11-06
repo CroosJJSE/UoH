@@ -1,0 +1,463 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: accounts
+    // Document ID: Firebase Auth uid
+    // Fields:
+    //   - uid: string (required, immutable, must equal document ID / auth uid)
+    //   - email: string (required, immutable, must match auth token email)
+    //   - role: 'MEMBER' | 'ADMIN' | 'MASTER_ADMIN'
+    //       Create: always MEMBER. Client cannot create privileged roles.
+    //       MASTER_ADMIN is assigned only in the Firebase Console (Admin SDK
+    //       bypasses these rules). Client cannot grant, transfer, or remove it.
+    //   - status: 'pending' | 'approved' | 'rejected' | 'suspended'
+    //       Create: always pending. Users cannot approve themselves.
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    // PII: email lives only here. Readable by the owner and admins, never by
+    // ordinary members.
+    //
+    // Collection: profiles
+    // Document ID: Firebase Auth uid
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - name: string (1-80)
+    //   - avatar: string (https URL, 1-2000)
+    //   - gradDegree: string (0-160)
+    //   - fellowshipYear: string (0-120)
+    //   - noteOfGratitude: string (0-2000)
+    //   - role: same enum as accounts (denormalized, not client-authoritative)
+    //   - status: same enum as accounts (denormalized for queryable wall)
+    //   - starsEarned: int (>=0, create 0, not client-writable except via
+    //       locked create value — display values are derived in the app)
+    //   - contributionsCount: int (>=0, create 0, same lock)
+    //   - createdAt: timestamp (immutable)
+    //   - updatedAt: timestamp
+    //
+    // Collection: contributions
+    // Document ID: auto-id
+    // Fields:
+    //   - authorId: string (immutable, must equal auth uid on create)
+    //   - category: 'museum' | 'recipes' | 'memories' | 'wisdom'
+    //   - subCategory: string (1-64)
+    //   - title: string (1-200)
+    //   - subtitle: string (0-240)
+    //   - content: string (1-20000)
+    //   - images: list of https URLs (max 6, each 1-2000 chars)
+    //   - author: map { name, avatar, fellowshipYear }
+    //   - createdAt: timestamp (immutable)
+    //   - updatedAt: timestamp
+    //   - starsCount: int
+    //   - starredBy: list of uids (duplicate awards prevented)
+    //   - commentsCount: int
+    //   - metadata: map of optional category fields
+    //
+    // Collection: contributions/{id}/comments
+    // Document ID: auto-id
+    // Fields:
+    //   - authorId, authorName, authorAvatar, text, createdAt
+    //
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function accountPath(userId) {
+      return /databases/$(database)/documents/accounts/$(userId);
+    }
+
+    function callerAccount() {
+      return get(accountPath(request.auth.uid)).data;
+    }
+
+    function callerAccountExists() {
+      return isAuthenticated() && exists(accountPath(request.auth.uid));
+    }
+
+    function isApprovedMember() {
+      return callerAccountExists()
+        && callerAccount().status == 'approved'
+        && callerAccount().role in ['MEMBER', 'ADMIN', 'MASTER_ADMIN']
+        && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return callerAccountExists()
+        && callerAccount().status == 'approved'
+        && callerAccount().role in ['ADMIN', 'MASTER_ADMIN']
+        && request.auth.token.email_verified == true;
+    }
+
+    function isMasterAdmin() {
+      return callerAccountExists()
+        && callerAccount().status == 'approved'
+        && callerAccount().role == 'MASTER_ADMIN'
+        && request.auth.token.email_verified == true;
+    }
+
+    function validEmail(value) {
+      return value is string
+        && value.size() > 3
+        && value.size() < 320
+        && value.matches('^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$');
+    }
+
+    function validHttpsUrl(value) {
+      return value is string
+        && value.size() > 10
+        && value.size() <= 2000
+        && value.matches('^https://.*');
+    }
+
+    function boundedString(value, minLen, maxLen) {
+      return value is string && value.size() >= minLen && value.size() <= maxLen;
+    }
+
+    function isValidRole(value) {
+      return value in ['MEMBER', 'ADMIN', 'MASTER_ADMIN'];
+    }
+
+    function isValidStatus(value) {
+      return value in ['pending', 'approved', 'rejected', 'suspended'];
+    }
+
+    function recentTimestamp(value) {
+      return value is timestamp
+        && value <= request.time
+        && value >= request.time - duration.value(5, 'm');
+    }
+
+    function immutableTimestampsUnchanged() {
+      return request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function isValidAccountShape(data) {
+      return data.keys().hasOnly(['uid', 'email', 'role', 'status', 'createdAt', 'updatedAt'])
+        && data.uid is string
+        && validEmail(data.email)
+        && isValidRole(data.role)
+        && isValidStatus(data.status)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAccountCreate() {
+      return isValidAccountShape(request.resource.data)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'MEMBER'
+        && request.resource.data.status == 'pending'
+        && recentTimestamp(request.resource.data.createdAt)
+        && request.resource.data.updatedAt == request.resource.data.createdAt
+        && request.auth.token.email_verified == true;
+    }
+
+    function accountIdentityUnchanged() {
+      return request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function isValidAccountUpdate() {
+      return isValidAccountShape(request.resource.data)
+        && accountIdentityUnchanged()
+        && resource.data.role != 'MASTER_ADMIN'
+        && request.resource.data.role != 'MASTER_ADMIN'
+        && request.auth.uid != resource.data.uid
+        && (
+          (
+            isMasterAdmin()
+            && request.resource.data.role in ['MEMBER', 'ADMIN']
+            && isValidStatus(request.resource.data.status)
+          )
+          || (
+            isAdmin()
+            && !isMasterAdmin()
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.role == 'MEMBER'
+            && isValidStatus(request.resource.data.status)
+          )
+        );
+    }
+
+    function isValidProfileShape(data) {
+      return data.keys().hasOnly([
+          'uid', 'name', 'avatar', 'gradDegree', 'fellowshipYear',
+          'noteOfGratitude', 'role', 'status', 'starsEarned',
+          'contributionsCount', 'createdAt', 'updatedAt'
+        ])
+        && data.uid is string
+        && boundedString(data.name, 1, 80)
+        && validHttpsUrl(data.avatar)
+        && boundedString(data.gradDegree, 0, 160)
+        && boundedString(data.fellowshipYear, 0, 120)
+        && boundedString(data.noteOfGratitude, 0, 2000)
+        && isValidRole(data.role)
+        && isValidStatus(data.status)
+        && data.starsEarned is int
+        && data.starsEarned >= 0
+        && data.starsEarned <= 1000000
+        && data.contributionsCount is int
+        && data.contributionsCount >= 0
+        && data.contributionsCount <= 100000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidProfileCreate() {
+      return isValidProfileShape(request.resource.data)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'MEMBER'
+        && request.resource.data.status == 'pending'
+        && request.resource.data.starsEarned == 0
+        && request.resource.data.contributionsCount == 0
+        && recentTimestamp(request.resource.data.createdAt)
+        && request.resource.data.updatedAt == request.resource.data.createdAt
+        && request.auth.token.email_verified == true;
+    }
+
+    function isOwnerProfileEdit() {
+      return isOwner(resource.data.uid)
+        && isValidProfileShape(request.resource.data)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.starsEarned == resource.data.starsEarned
+        && request.resource.data.contributionsCount == resource.data.contributionsCount
+        && immutableTimestampsUnchanged();
+    }
+
+    function isAdminProfileStatusSync() {
+      return isAdmin()
+        && request.auth.uid != resource.data.uid
+        && resource.data.role != 'MASTER_ADMIN'
+        && request.resource.data.role != 'MASTER_ADMIN'
+        && isValidProfileShape(request.resource.data)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.avatar == resource.data.avatar
+        && request.resource.data.gradDegree == resource.data.gradDegree
+        && request.resource.data.fellowshipYear == resource.data.fellowshipYear
+        && request.resource.data.noteOfGratitude == resource.data.noteOfGratitude
+        && request.resource.data.starsEarned == resource.data.starsEarned
+        && request.resource.data.contributionsCount == resource.data.contributionsCount
+        && immutableTimestampsUnchanged()
+        && (
+          (
+            isMasterAdmin()
+            && request.resource.data.role in ['MEMBER', 'ADMIN']
+            && isValidStatus(request.resource.data.status)
+          )
+          || (
+            !isMasterAdmin()
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.role == 'MEMBER'
+            && isValidStatus(request.resource.data.status)
+          )
+        );
+    }
+
+    function isValidStringList(value, maxItems, maxItemLen) {
+      return value is list
+        && value.size() <= maxItems
+        && (value.size() == 0 || value[0] is string)
+        && (value.size() == 0 || value[0].size() <= maxItemLen);
+    }
+
+    function isValidImageList(value) {
+      return value is list
+        && value.size() <= 6
+        && (value.size() == 0 || validHttpsUrl(value[0]))
+        && (value.size() < 2 || validHttpsUrl(value[1]))
+        && (value.size() < 3 || validHttpsUrl(value[2]))
+        && (value.size() < 4 || validHttpsUrl(value[3]))
+        && (value.size() < 5 || validHttpsUrl(value[4]))
+        && (value.size() < 6 || validHttpsUrl(value[5]));
+    }
+
+    function isValidAuthorSnapshot(value) {
+      return value is map
+        && value.keys().hasOnly(['name', 'avatar', 'fellowshipYear'])
+        && boundedString(value.name, 1, 80)
+        && validHttpsUrl(value.avatar)
+        && boundedString(value.fellowshipYear, 0, 120);
+    }
+
+    function isValidMetadata(value) {
+      return value is map
+        && value.keys().hasOnly([
+          'ingredients', 'steps', 'prepTime', 'servings', 'secretTouch',
+          'medium', 'yearCreated', 'scriptureVerse', 'readingTime',
+          'scripturePassage', 'songTitle', 'artist', 'alexaPrompt',
+          'lyricsSnippet', 'houseMemory', 'goldenQuote', 'lifePrinciple'
+        ])
+        && (!('ingredients' in value) || isValidStringList(value.ingredients, 40, 240))
+        && (!('steps' in value) || isValidStringList(value.steps, 40, 1000))
+        && (!('prepTime' in value) || boundedString(value.prepTime, 0, 80))
+        && (!('servings' in value) || boundedString(value.servings, 0, 80))
+        && (!('secretTouch' in value) || boundedString(value.secretTouch, 0, 500))
+        && (!('medium' in value) || boundedString(value.medium, 0, 160))
+        && (!('yearCreated' in value) || boundedString(value.yearCreated, 0, 40))
+        && (!('scriptureVerse' in value) || boundedString(value.scriptureVerse, 0, 400))
+        && (!('readingTime' in value) || boundedString(value.readingTime, 0, 40))
+        && (!('scripturePassage' in value) || boundedString(value.scripturePassage, 0, 400))
+        && (!('songTitle' in value) || boundedString(value.songTitle, 0, 200))
+        && (!('artist' in value) || boundedString(value.artist, 0, 160))
+        && (!('alexaPrompt' in value) || boundedString(value.alexaPrompt, 0, 200))
+        && (!('lyricsSnippet' in value) || boundedString(value.lyricsSnippet, 0, 2000))
+        && (!('houseMemory' in value) || boundedString(value.houseMemory, 0, 500))
+        && (!('goldenQuote' in value) || boundedString(value.goldenQuote, 0, 600))
+        && (!('lifePrinciple' in value) || boundedString(value.lifePrinciple, 0, 400));
+    }
+
+    function isValidStarredBy(value) {
+      return value is list && value.size() <= 2000;
+    }
+
+    function isValidContributionShape(data) {
+      return data.keys().hasOnly([
+          'authorId', 'category', 'subCategory', 'title', 'subtitle', 'content',
+          'images', 'author', 'createdAt', 'updatedAt', 'starsCount',
+          'starredBy', 'commentsCount', 'metadata'
+        ])
+        && data.authorId is string
+        && data.category in ['museum', 'recipes', 'memories', 'wisdom']
+        && boundedString(data.subCategory, 1, 64)
+        && boundedString(data.title, 1, 200)
+        && boundedString(data.subtitle, 0, 240)
+        && boundedString(data.content, 1, 20000)
+        && isValidImageList(data.images)
+        && isValidAuthorSnapshot(data.author)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.starsCount is int
+        && data.starsCount >= 0
+        && data.starsCount <= 2000
+        && isValidStarredBy(data.starredBy)
+        && data.starsCount == data.starredBy.size()
+        && data.commentsCount is int
+        && data.commentsCount >= 0
+        && data.commentsCount <= 5000
+        && isValidMetadata(data.metadata);
+    }
+
+    function isValidContributionCreate() {
+      return isValidContributionShape(request.resource.data)
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.starsCount == 0
+        && request.resource.data.starredBy.size() == 0
+        && request.resource.data.commentsCount == 0
+        && recentTimestamp(request.resource.data.createdAt)
+        && request.resource.data.updatedAt == request.resource.data.createdAt;
+    }
+
+    function contributionCoreUnchanged() {
+      return request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function isOwnerContentEdit() {
+      return isAuthenticated()
+        && resource.data.authorId == request.auth.uid
+        && contributionCoreUnchanged()
+        && request.resource.data.starsCount == resource.data.starsCount
+        && request.resource.data.starredBy == resource.data.starredBy
+        && request.resource.data.commentsCount == resource.data.commentsCount
+        && isValidContributionShape(request.resource.data);
+    }
+
+    function isStarToggle() {
+      return isApprovedMember()
+        && contributionCoreUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['starredBy', 'starsCount', 'updatedAt'])
+        && isValidContributionShape(request.resource.data)
+        && (
+          (
+            !(request.auth.uid in resource.data.starredBy)
+            && request.auth.uid in request.resource.data.starredBy
+            && request.resource.data.starredBy.size() == resource.data.starredBy.size() + 1
+            && request.resource.data.starsCount == resource.data.starsCount + 1
+          )
+          || (
+            request.auth.uid in resource.data.starredBy
+            && !(request.auth.uid in request.resource.data.starredBy)
+            && request.resource.data.starredBy.size() == resource.data.starredBy.size() - 1
+            && request.resource.data.starsCount == resource.data.starsCount - 1
+          )
+        );
+    }
+
+    function isCommentCountAdjust() {
+      return isApprovedMember()
+        && contributionCoreUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['commentsCount', 'updatedAt'])
+        && isValidContributionShape(request.resource.data)
+        && (
+          request.resource.data.commentsCount == resource.data.commentsCount + 1
+          || request.resource.data.commentsCount == resource.data.commentsCount - 1
+        );
+    }
+
+    function isValidCommentShape(data) {
+      return data.keys().hasOnly(['authorId', 'authorName', 'authorAvatar', 'text', 'createdAt'])
+        && data.authorId is string
+        && boundedString(data.authorName, 1, 80)
+        && validHttpsUrl(data.authorAvatar)
+        && boundedString(data.text, 1, 2000)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCommentCreate() {
+      return isValidCommentShape(request.resource.data)
+        && request.resource.data.authorId == request.auth.uid
+        && recentTimestamp(request.resource.data.createdAt);
+    }
+
+    match /accounts/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidAccountCreate();
+      allow update: if isValidAccountUpdate();
+      allow delete: if false;
+    }
+
+    match /profiles/{userId} {
+      allow get: if isOwner(userId)
+        || isAdmin()
+        || (isApprovedMember() && resource.data.status == 'approved');
+      allow list: if isAdmin()
+        || (isApprovedMember() && resource.data.status == 'approved');
+      allow create: if isOwner(userId) && isValidProfileCreate();
+      allow update: if isOwnerProfileEdit() || isAdminProfileStatusSync();
+      allow delete: if false;
+    }
+
+    match /contributions/{contributionId} {
+      allow read: if isApprovedMember();
+      allow create: if isApprovedMember() && isValidContributionCreate();
+      allow update: if isApprovedMember()
+        && (isOwnerContentEdit() || isStarToggle() || isCommentCountAdjust());
+      allow delete: if isApprovedMember()
+        && (resource.data.authorId == request.auth.uid || isAdmin());
+
+      match /comments/{commentId} {
+        allow read: if isApprovedMember();
+        allow create: if isApprovedMember() && isValidCommentCreate();
+        allow update: if false;
+        allow delete: if isApprovedMember()
+          && (resource.data.authorId == request.auth.uid || isAdmin());
+      }
+    }
+  }
+}

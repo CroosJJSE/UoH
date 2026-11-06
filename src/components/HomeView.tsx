@@ -62,14 +62,14 @@ export function HomeView({
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#E8B45A] animate-pulse" />
           <span className="text-[11px] font-medium tracking-widest uppercase text-[#E8B45A]">
-            The Hearthside Journal
+            The Hathbodhiya Journal
           </span>
         </div>
         <h2 className="font-editorial text-[20px] leading-7 text-[#F5EFE3]">
-          Peace be with you, {firstName}
+        කෑම කන්න එන්න, {firstName}
         </h2>
         <p className="text-[13px] leading-5 text-[#A8A196]">
-          Treasuring grace and friendship since 2019.
+        Dinner table will be closed at 8:00 PM.
         </p>
       </section>
 
@@ -101,10 +101,10 @@ export function HomeView({
             )}
             <div className="p-3 pt-4 flex flex-col gap-1.5">
               <h1 className="font-editorial text-[28px] leading-9 text-[#F5EFE3]">
-                Some things are too precious to forget.
+                Hey Alexa play......
               </h1>
               <p className="text-[15px] leading-6 text-[#A8A196]">
-                A little home for our memories, wisdom, and everything we share around this table.
+                Everybody loves somebody
               </p>
             </div>
           </button>

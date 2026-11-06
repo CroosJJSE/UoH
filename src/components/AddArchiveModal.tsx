@@ -168,7 +168,7 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-[#2E2A25] mb-6">
           <div>
             <h3 className="font-editorial text-2xl font-medium text-[#F5EFE3]">
-              {editingItem ? 'Revise Archive Record' : 'Contribute to Archive'}
+              {editingItem ? 'Revise Archive Record' : 'Be merciful'}
             </h3>
             <p className="text-xs text-[#A8A196] mt-0.5">
               Contributing as <strong className="text-[#E8B45A]">{currentUser.name}</strong>

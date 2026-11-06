@@ -394,12 +394,14 @@ export default function App() {
         currentUser={currentUser || INITIAL_MEMBERS[0]}
       />
 
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        currentUser={currentUser || INITIAL_MEMBERS[0]}
-        onUpdateCurrentUser={handleUpdateUser}
-      />
+        {currentUser && (
+          <ProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            currentUser={currentUser}
+            onUpdateCurrentUser={handleUpdateUser}
+          />
+        )}
     </div>
   );
 }

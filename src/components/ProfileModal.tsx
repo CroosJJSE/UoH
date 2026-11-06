@@ -27,12 +27,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setName(currentUser.name);
+    if (!isOpen) return;
+  
+    setName(currentUser.name || '');
     setGradDegree(currentUser.gradDegree || '');
     setFellowshipYear(currentUser.fellowshipYear || '');
     setNoteOfGratitude(currentUser.noteOfGratitude || '');
-    setAvatar(currentUser.avatar);
-  }, [currentUser, isOpen]);
+    setAvatar(currentUser.avatar || '');
+  
+  }, [isOpen, currentUser.id]);
 
   if (!isOpen) return null;
 

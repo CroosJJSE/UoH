@@ -43,16 +43,6 @@ export const Header: FC<HeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Quick Header Create Button */}
-          <button
-            type="button"
-            onClick={onOpenAddModal}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] text-[12px] font-semibold shadow-sm active:scale-95 transition-all cursor-pointer"
-            title="Create New Offering"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Create</span>
-          </button>
 
           <button
             type="button"

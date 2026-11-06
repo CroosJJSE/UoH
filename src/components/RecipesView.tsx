@@ -21,7 +21,7 @@ export const RecipesView: FC<RecipesViewProps> = ({
     <div className="flex flex-col w-full">
       <header className="flex flex-col pb-4">
         <div className="flex items-center gap-1.5 text-[#E8B45A] mb-1.5">
-          <span className="text-[11px] uppercase tracking-widest font-semibold">From the fellowship kitchen</span>
+          <span className="text-[11px] uppercase tracking-widest font-semibold">From the world famous chef Rohan W</span>
         </div>
         <h1 className="font-editorial italic text-[34px] leading-[42px] text-[#F5EFE3] tracking-tight">
           The Recipe Book
