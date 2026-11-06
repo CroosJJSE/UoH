@@ -7,6 +7,8 @@ interface ItemDetailModalProps {
   onClose: () => void;
   onStar: (itemId: string) => void;
   onAddComment: (itemId: string, text: string) => void;
+  onEdit?: (item: ArchiveItem) => void;
+  onDelete?: (item: ArchiveItem) => void;
   currentUser: CommunityMember;
 }
 
@@ -15,6 +17,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   onClose,
   onStar,
   onAddComment,
+  onEdit,
+  onDelete,
   currentUser,
 }) => {
   const [commentText, setCommentText] = useState('');
@@ -23,7 +27,10 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
   if (!item) return null;
 
-  const isStarred = item.starredBy.includes(currentUser.email);
+  const isStarred = item.starredBy.includes(currentUser.id);
+  const canManage =
+    item.authorId === currentUser.id || currentUser.role === 'ADMIN' || currentUser.role === 'MASTER_ADMIN';
+  const canEdit = item.authorId === currentUser.id;
   const isRecipe = item.category === 'recipes';
   const isSong = item.category === 'museum' && item.subCategory === 'songs';
 
@@ -48,8 +55,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#111210]/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-4xl my-8 bg-[#181714] border border-[#2E2A25] rounded-2xl shadow-2xl p-6 sm:p-8 lg:p-10 text-[#F5EFE3] max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[60] bg-[#111210]/90 backdrop-blur-md flex justify-center overflow-x-hidden">
+      <div className="relative w-full max-w-[430px] h-dvh bg-[#181714] p-5 text-[#F5EFE3] overflow-y-auto overflow-x-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -276,12 +283,35 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </button>
         </div>
 
+        {canManage && (
+          <div className="flex items-center justify-end gap-3 mb-6">
+            {canEdit && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(item)}
+                className="px-3 py-1.5 rounded-md text-xs text-[#E8B45A] border border-[#2E2A25] cursor-pointer"
+              >
+                Edit contribution
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(item)}
+                className="px-3 py-1.5 rounded-md text-xs text-[#ffb4ab] cursor-pointer"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Community Comments & Reflections */}
         <div className="space-y-6 pt-4 border-t border-[#2E2A25]">
           <div className="flex items-center justify-between">
             <h3 className="font-editorial text-2xl text-[#F5EFE3] font-medium flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-[#E8B45A]" />
-              <span>Fellowship Reflections ({item.comments.length})</span>
+              <span>Fellowship Reflections ({item.commentsCount})</span>
             </h3>
           </div>
 

@@ -1,67 +1,84 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CommunityMember } from '../types';
-import { X, UserCheck, Star, FileText, Upload } from 'lucide-react';
+import { X, Star, FileText, Upload } from 'lucide-react';
+import { signOut } from '../services/auth';
+import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
+import { toUserMessage } from '../lib/errors';
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: CommunityMember;
-  allMembers: CommunityMember[];
-  onUpdateCurrentUser: (updated: CommunityMember) => void;
-  onSelectMember: (member: CommunityMember) => void;
+  onUpdateCurrentUser: (updated: CommunityMember) => Promise<void> | void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  allMembers,
   onUpdateCurrentUser,
-  onSelectMember,
 }) => {
   const [name, setName] = useState(currentUser.name);
-  const [email, setEmail] = useState(currentUser.email);
   const [gradDegree, setGradDegree] = useState(currentUser.gradDegree || '');
   const [fellowshipYear, setFellowshipYear] = useState(currentUser.fellowshipYear || '');
   const [noteOfGratitude, setNoteOfGratitude] = useState(currentUser.noteOfGratitude || '');
   const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setName(currentUser.name);
+    setGradDegree(currentUser.gradDegree || '');
+    setFellowshipYear(currentUser.fellowshipYear || '');
+    setNoteOfGratitude(currentUser.noteOfGratitude || '');
+    setAvatar(currentUser.avatar);
+  }, [currentUser, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const url = await uploadImage(file);
+      setAvatar(url);
+    } catch (err) {
+      setError(toUserMessage(err));
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated: CommunityMember = {
-      ...currentUser,
-      name,
-      email,
-      gradDegree,
-      fellowshipYear,
-      noteOfGratitude,
-      avatar,
-    };
-    onUpdateCurrentUser(updated);
-    onClose();
+    setBusy(true);
+    setError(null);
+    try {
+      await onUpdateCurrentUser({
+        ...currentUser,
+        name: name.trim(),
+        gradDegree,
+        fellowshipYear,
+        noteOfGratitude,
+        avatar,
+      });
+      onClose();
+    } catch (err) {
+      setError(toUserMessage(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#111210]/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-2xl my-8 bg-[#181714] border border-[#2E2A25] rounded-2xl shadow-2xl p-6 sm:p-8 text-[#F5EFE3] max-h-[92vh] overflow-y-auto">
-        {/* Header */}
+    <div className="fixed inset-0 z-[60] bg-[#111210]/90 backdrop-blur-md flex justify-center overflow-x-hidden">
+      <div className="relative w-full max-w-[430px] h-dvh bg-[#181714] p-5 text-[#F5EFE3] overflow-y-auto overflow-x-hidden">
         <div className="flex items-center justify-between pb-4 border-b border-[#2E2A25] mb-6">
           <div>
             <h3 className="font-editorial text-2xl font-medium text-[#F5EFE3]">
-              Google Community Profile
+              Community Profile
             </h3>
             <p className="text-xs text-[#A8A196] mt-0.5">
               Your identity on the University of Hathbodhiya community wall
@@ -75,9 +92,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
-        {/* Edit Form */}
         <form onSubmit={handleSave} className="space-y-5">
-          {/* Avatar Preview & Upload */}
           <div className="flex items-center gap-4 p-4 rounded-xl bg-[#22201D] border border-[#2E2A25]">
             <img
               src={avatar}
@@ -89,26 +104,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <label className="block text-xs font-semibold text-[#F5EFE3] mb-1">
                 Profile Avatar
               </label>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#181714] border border-[#2E2A25] text-xs text-[#E8B45A] hover:bg-[#2B2824] cursor-pointer transition-colors">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Upload Image</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                  />
-                </label>
-                <span className="text-[11px] text-[#6E675D]">or paste image URL below</span>
-              </div>
-              <input
-                type="text"
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="https://..."
-                className="mt-2 w-full px-2.5 py-1 rounded bg-[#181714] border border-[#2E2A25] text-xs text-[#A8A196] focus:border-[#E8B45A] focus:outline-none"
-              />
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#181714] border border-[#2E2A25] text-xs text-[#E8B45A] hover:bg-[#2B2824] cursor-pointer transition-colors">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{isCloudinaryConfigured() ? 'Upload Image' : 'Configure Cloudinary to upload'}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={busy || !isCloudinaryConfigured()}
+                />
+              </label>
+              <p className="mt-2 text-[11px] text-[#6E675D]">
+                Google photo is used when you sign in with Google. Email is never shown on other profiles.
+              </p>
             </div>
           </div>
 
@@ -124,13 +133,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-[#A8A196] mb-1">Google Email</label>
+              <label className="block text-xs text-[#A8A196] mb-1">Signed-in email</label>
               <input
                 type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
+                readOnly
+                value={currentUser.email ?? ''}
+                className="w-full px-3 py-2 rounded-lg bg-[#181714] border border-[#2E2A25] text-xs text-[#6E675D] focus:outline-none"
               />
             </div>
           </div>
@@ -171,7 +179,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             />
           </div>
 
-          {/* Current Stats */}
           <div className="flex items-center gap-6 p-3 rounded-lg bg-[#111210] border border-[#2E2A25] text-xs text-[#A8A196]">
             <span className="flex items-center gap-1.5 text-[#E8B45A]">
               <Star className="w-4 h-4 fill-[#E8B45A]" />
@@ -181,59 +188,37 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <FileText className="w-4 h-4 text-[#A8A196]" />
               <strong>{currentUser.contributionsCount}</strong> contributions
             </span>
+            <span className="text-[#6E675D]">{currentUser.role.replace('_', ' ')}</span>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2E2A25]">
+          {error && <p className="text-xs text-[#ffb4ab]">{error}</p>}
+
+          <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#2E2A25]">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs text-[#A8A196] hover:text-[#F5EFE3] cursor-pointer"
+              onClick={() => void signOut()}
+              className="px-4 py-2 text-xs text-[#ffb4ab] hover:text-[#ffd2cc] cursor-pointer"
             >
-              Cancel
+              Sign out
             </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-lg text-xs font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] transition-colors cursor-pointer"
-            >
-              Save Profile Changes
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs text-[#A8A196] hover:text-[#F5EFE3] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={busy}
+                className="px-5 py-2 rounded-lg text-xs font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] transition-colors cursor-pointer disabled:opacity-60"
+              >
+                {busy ? 'Saving…' : 'Save Profile Changes'}
+              </button>
+            </div>
           </div>
         </form>
-
-        {/* Quick Profile Switcher (For testing community interactions) */}
-        <div className="mt-8 pt-6 border-t border-[#2E2A25]">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#A8A196] mb-3">
-            Quick Switch Active Member (Evaluation & Community Testing)
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {allMembers.map((member) => (
-              <button
-                key={member.id}
-                type="button"
-                onClick={() => {
-                  onSelectMember(member);
-                  onClose();
-                }}
-                className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-colors cursor-pointer ${
-                  member.id === currentUser.id
-                    ? 'bg-[#22201D] border-[#E8B45A]'
-                    : 'bg-[#181714] border-[#2E2A25] hover:border-[#423D35]'
-                }`}
-              >
-                <img
-                  src={member.avatar}
-                  alt={member.name}
-                  referrerPolicy="no-referrer"
-                  className="w-7 h-7 rounded-full object-cover shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="text-xs text-[#F5EFE3] font-medium truncate">{member.name.split(' ')[0]}</p>
-                  <p className="text-[10px] text-[#6E675D] truncate">{member.starsEarned} stars</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

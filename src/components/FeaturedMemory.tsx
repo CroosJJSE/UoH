@@ -85,7 +85,7 @@ export const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#22201D] border border-[#2E2A25] text-[#A8A196] hover:text-[#F5EFE3] hover:border-[#423D35] transition-colors cursor-pointer"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span className="tabular-nums">{item.comments.length}</span>
+                <span className="tabular-nums">{item.commentsCount}</span>
               </button>
 
               <button

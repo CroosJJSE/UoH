@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { ArchiveItem, CommunityMember } from '../types';
+import React, { useEffect, useState } from 'react';
+import { ArchiveItem, CommunityMember, ContributionDraft } from '../types';
 import { X, Upload, Plus, Trash2, Sparkles, Music2, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
+import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
+import { toUserMessage } from '../lib/errors';
 
 interface AddArchiveModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Omit<ArchiveItem, 'id' | 'createdAt' | 'starsCount' | 'starredBy' | 'comments'>) => void;
+  onSave: (draft: ContributionDraft, existingId?: string) => Promise<void>;
   currentUser: CommunityMember;
+  editingItem?: ArchiveItem | null;
 }
 
 export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
@@ -14,6 +17,7 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   onClose,
   onSave,
   currentUser,
+  editingItem,
 }) => {
   const [category, setCategory] = useState<'museum' | 'recipes' | 'memories' | 'wisdom'>('recipes');
   const [subCategory, setSubCategory] = useState<string>('mains');
@@ -21,6 +25,9 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [subtitle, setSubtitle] = useState('');
   const [content, setContent] = useState('');
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Category specific fields
   // Recipes
@@ -43,11 +50,39 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [goldenQuote, setGoldenQuote] = useState('');
   const [lifePrinciple, setLifePrinciple] = useState('');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const item = editingItem;
+    setCategory(item?.category ?? 'recipes');
+    setSubCategory(item?.subCategory ?? (item?.category === 'museum' ? 'art' : 'mains'));
+    setTitle(item?.title ?? '');
+    setSubtitle(item?.subtitle ?? '');
+    setContent(item?.content ?? '');
+    setImagePreview(item?.images?.[0] ?? '');
+    setImageFile(null);
+    setPrepTime(item?.metadata?.prepTime ?? '');
+    setServings(item?.metadata?.servings ?? '');
+    setSecretTouch(item?.metadata?.secretTouch ?? '');
+    setIngredients(item?.metadata?.ingredients?.length ? item.metadata.ingredients : ['']);
+    setSteps(item?.metadata?.steps?.length ? item.metadata.steps : ['']);
+    setMedium(item?.metadata?.medium ?? '');
+    setScriptureVerse(item?.metadata?.scriptureVerse ?? item?.metadata?.scripturePassage ?? '');
+    setReadingTime(item?.metadata?.readingTime ?? '');
+    setSongArtist(item?.metadata?.artist ?? '');
+    setAlexaPrompt(item?.metadata?.alexaPrompt ?? '');
+    setLyricsSnippet(item?.metadata?.lyricsSnippet ?? '');
+    setHouseMemory(item?.metadata?.houseMemory ?? '');
+    setGoldenQuote(item?.metadata?.goldenQuote ?? '');
+    setLifePrinciple(item?.metadata?.lifePrinciple ?? '');
+    setError(null);
+  }, [isOpen, editingItem]);
+
   if (!isOpen) return null;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -76,9 +111,11 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     setSteps(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
+    setBusy(true);
+    setError(null);
 
     const metadata: ArchiveItem['metadata'] = {};
 
@@ -107,33 +144,41 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
       metadata.lifePrinciple = lifePrinciple || undefined;
     }
 
-    onSave({
-      category,
-      subCategory,
-      title,
-      subtitle: subtitle || undefined,
-      content,
-      images: imagePreview ? [imagePreview] : [],
-      metadata,
-      author: {
-        name: currentUser.name,
-        email: currentUser.email,
-        avatar: currentUser.avatar,
-        fellowshipYear: currentUser.fellowshipYear,
-      },
-    });
+    try {
+      let images = imagePreview && imagePreview.startsWith('https://') ? [imagePreview] : [];
+      if (imageFile) {
+        images = [await uploadImage(imageFile)];
+      }
 
-    onClose();
+      await onSave(
+        {
+          category,
+          subCategory,
+          title,
+          subtitle: subtitle || undefined,
+          content,
+          images,
+          metadata,
+        },
+        editingItem?.id
+      );
+
+      onClose();
+    } catch (err) {
+      setError(toUserMessage(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#111210]/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-3xl my-8 bg-[#181714] border border-[#2E2A25] rounded-2xl shadow-2xl p-6 sm:p-8 text-[#F5EFE3] max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[60] bg-[#111210]/90 backdrop-blur-md flex justify-center overflow-x-hidden">
+      <div className="relative w-full max-w-[430px] h-dvh bg-[#181714] p-5 text-[#F5EFE3] overflow-y-auto overflow-x-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#2E2A25] mb-6">
           <div>
             <h3 className="font-editorial text-2xl font-medium text-[#F5EFE3]">
-              Contribute to the Living Archive
+              {editingItem ? 'Revise an Archive Record' : 'Contribute to the Living Archive'}
             </h3>
             <p className="text-xs text-[#A8A196] mt-0.5">
               Contributing as <strong className="text-[#E8B45A]">{currentUser.name}</strong> ({currentUser.email})
@@ -586,7 +631,10 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
                   />
                   <button
                     type="button"
-                    onClick={() => setImagePreview('')}
+                    onClick={() => {
+                      setImagePreview('');
+                      setImageFile(null);
+                    }}
                     className="absolute top-1 right-1 p-1 rounded-full bg-[#111210]/90 text-[#ffb4ab] cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -595,6 +643,13 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
               )}
             </div>
           </div>
+
+          {error && <p className="text-xs text-[#ffb4ab]">{error}</p>}
+          {!isCloudinaryConfigured() && (
+            <p className="text-[11px] text-[#6E675D]">
+              Image upload requires Cloudinary unsigned preset variables. You can still preserve text-only records.
+            </p>
+          )}
 
           {/* Submit Actions */}
           <div className="pt-4 border-t border-[#2E2A25] flex items-center justify-end gap-3">
@@ -607,9 +662,10 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg text-xs font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] transition-colors shadow-sm cursor-pointer"
+              disabled={busy}
+              className="px-5 py-2 rounded-lg text-xs font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] transition-colors shadow-sm cursor-pointer disabled:opacity-60"
             >
-              Preserve in Archive
+              {busy ? 'Saving…' : editingItem ? 'Save revisions' : 'Preserve in Archive'}
             </button>
           </div>
         </form>

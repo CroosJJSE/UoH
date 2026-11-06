@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { ArchiveItem, CategoryType, CommunityMember } from './types';
-import { StorageService } from './services/storage';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArchiveItem, CategoryType, CommunityMember, ContributionDraft } from './types';
 import { Header } from './components/Header';
-import { FeaturedMemory } from './components/FeaturedMemory';
-import { CategoryNavGrid } from './components/CategoryNavGrid';
+import { BottomNav } from './components/BottomNav';
+import { HomeView } from './components/HomeView';
 import { MuseumView } from './components/MuseumView';
 import { RecipesView } from './components/RecipesView';
 import { AlbumsView } from './components/AlbumsView';
@@ -12,372 +11,362 @@ import { CommunityWallView } from './components/CommunityWallView';
 import { AddArchiveModal } from './components/AddArchiveModal';
 import { ItemDetailModal } from './components/ItemDetailModal';
 import { ProfileModal } from './components/ProfileModal';
-import { Star, MessageSquare } from 'lucide-react';
+import { AuthScreen } from './components/AuthScreen';
+import { AccessGate } from './components/AccessGate';
+import { useAuth } from './auth/AuthProvider';
+import { PAGE_SIZE } from './lib/constants';
+import { toUserMessage } from './lib/errors';
+import { listApprovedMembers, updateOwnProfile } from './services/users';
+import {
+  addComment,
+  createContribution,
+  deleteContribution,
+  exportArchiveJson,
+  getContribution,
+  listContributions,
+  toggleStar,
+  updateContribution,
+} from './services/contributions';
+import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+
+function withDerivedStats(members: CommunityMember[], items: ArchiveItem[]): CommunityMember[] {
+  return members.map((member) => {
+    const owned = items.filter((item) => item.authorId === member.id);
+    return {
+      ...member,
+      contributionsCount: owned.length,
+      starsEarned: owned.reduce((sum, item) => sum + item.starsCount, 0),
+    };
+  });
+}
 
 export default function App() {
+  const { firebaseUser, account, profile, initializing, error: authError, refreshProfile } = useAuth();
   const [items, setItems] = useState<ArchiveItem[]>([]);
   const [members, setMembers] = useState<CommunityMember[]>([]);
-  const [currentUser, setCurrentUser] = useState<CommunityMember | null>(null);
+  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const cursorRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [loadingFeed, setLoadingFeed] = useState(false);
+  const [feedError, setFeedError] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState<CategoryType>('all');
-  
-  // Modals state
   const [selectedItem, setSelectedItem] = useState<ArchiveItem | null>(null);
+  const [editingItem, setEditingItem] = useState<ArchiveItem | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  useEffect(() => {
-    // Load from storage service
-    const storedItems = StorageService.getItems();
-    const storedMembers = StorageService.getMembers();
-    const storedUser = StorageService.getCurrentUser();
-
-    setItems(storedItems);
-    setMembers(storedMembers);
-    setCurrentUser(storedUser);
+  const loadPage = useCallback(async (reset: boolean) => {
+    setLoadingFeed(true);
+    try {
+      const [page, approvedMembers] = await Promise.all([
+        listContributions({
+          pageSize: PAGE_SIZE,
+          cursor: reset ? undefined : cursorRef.current ?? undefined,
+        }),
+        reset ? listApprovedMembers() : Promise.resolve(null),
+      ]);
+      setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
+      cursorRef.current = page.cursor;
+      setCursor(page.cursor);
+      if (approvedMembers) {
+        setMembers(approvedMembers);
+      }
+      setFeedError(null);
+    } catch (err) {
+      setFeedError(toUserMessage(err));
+    } finally {
+      setLoadingFeed(false);
+    }
   }, []);
 
-  if (!currentUser) {
-    return <div className="min-h-screen bg-[#111210]" />;
+  useEffect(() => {
+    if (account?.status === 'approved' && profile) {
+      void loadPage(true);
+    }
+  }, [account?.status, profile?.id]);
+
+  const currentUser = useMemo(() => {
+    if (!profile) return null;
+    const withStats = withDerivedStats([profile], items)[0];
+    return withStats;
+  }, [profile, items]);
+
+  const visibleMembers = useMemo(() => withDerivedStats(members, items), [members, items]);
+
+  if (initializing) {
+    return <div className="phone-shell" />;
   }
 
-  // Handle Stars
-  const handleToggleStar = (itemId: string) => {
-    const { updatedItem } = StorageService.toggleStar(itemId, currentUser.email);
-    if (updatedItem) {
-      setItems((prev) => prev.map((i) => (i.id === itemId ? updatedItem : i)));
-      if (selectedItem && selectedItem.id === itemId) {
-        setSelectedItem(updatedItem);
-      }
-      // Refresh members list for updated star tallies
-      setMembers(StorageService.getMembers());
-      setCurrentUser(StorageService.getCurrentUser());
-    }
-  };
+  if (!firebaseUser) {
+    return <AuthScreen />;
+  }
 
-  // Handle Comments
-  const handleAddComment = (itemId: string, text: string) => {
-    const newComment = StorageService.addComment(itemId, {
-      authorName: currentUser.name,
-      authorAvatar: currentUser.avatar,
-      authorEmail: currentUser.email,
-      text,
-    });
-
-    if (newComment) {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === itemId ? { ...i, comments: [...i.comments, newComment] } : i
-        )
-      );
-      if (selectedItem && selectedItem.id === itemId) {
-        setSelectedItem((prev) =>
-          prev ? { ...prev, comments: [...prev.comments, newComment] } : null
-        );
-      }
-    }
-  };
-
-  // Handle Save New Item
-  const handleSaveNewItem = (
-    newItemData: Omit<ArchiveItem, 'id' | 'createdAt' | 'starsCount' | 'starredBy' | 'comments'>
-  ) => {
-    const created = StorageService.addItem(newItemData);
-    setItems((prev) => [created, ...prev]);
-    setMembers(StorageService.getMembers());
-    setCurrentUser(StorageService.getCurrentUser());
-  };
-
-  // Handle User Updates
-  const handleUpdateUser = (updatedUser: CommunityMember) => {
-    StorageService.setCurrentUser(updatedUser);
-    setCurrentUser(updatedUser);
-    const updatedMembers = members.map((m) =>
-      m.id === updatedUser.id ? updatedUser : m
+  if (!firebaseUser.emailVerified) {
+    return (
+      <AccessGate
+        title="Confirm your email"
+        body="We sent a verification link. Confirm it, then refresh this page so a steward can review your fellowship request."
+        firebaseUser={firebaseUser}
+      />
     );
-    StorageService.saveMembers(updatedMembers);
-    setMembers(updatedMembers);
+  }
+
+  if (authError) {
+    return <AccessGate title="Unable to load your profile" body={authError} />;
+  }
+
+  if (account?.status === 'pending') {
+    return (
+      <AccessGate
+        title="Waiting for a steward"
+        body="Your account is registered. A steward will approve you before the archive opens. This keeps the fellowship intimate and known."
+        status="pending"
+      />
+    );
+  }
+
+  if (account?.status === 'rejected') {
+    return (
+      <AccessGate
+        title="Request not approved"
+        body="A steward declined this registration. If this was a mistake, sign out and write to the household with the email you used."
+        status="rejected"
+      />
+    );
+  }
+
+  if (account?.status === 'suspended') {
+    return (
+      <AccessGate
+        title="Account suspended"
+        body="Your access to the living archive is paused. Please speak with a steward if you believe this should be restored."
+        status="suspended"
+      />
+    );
+  }
+
+  if (!currentUser || account?.status !== 'approved') {
+    return <div className="phone-shell" />;
+  }
+
+  const replaceItem = (updated: ArchiveItem) => {
+    setItems((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+    setSelectedItem((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
   };
 
-  const handleSelectMember = (member: CommunityMember) => {
-    StorageService.setCurrentUser(member);
-    setCurrentUser(member);
+  const handleToggleStar = async (itemId: string) => {
+    const item = (selectedItem && selectedItem.id === itemId ? selectedItem : null)
+      ?? items.find((entry) => entry.id === itemId);
+    if (!item) return;
+    try {
+      replaceItem(await toggleStar(item, currentUser.id));
+    } catch (err) {
+      setFeedError(toUserMessage(err));
+    }
   };
 
-  // Category counts
+  const handleAddComment = async (itemId: string, text: string) => {
+    const item = selectedItem && selectedItem.id === itemId ? selectedItem : items.find((entry) => entry.id === itemId);
+    if (!item) return;
+    try {
+      const comment = await addComment(item, currentUser, text);
+      replaceItem({
+        ...item,
+        comments: [comment, ...item.comments],
+        commentsCount: item.commentsCount + 1,
+      });
+    } catch (err) {
+      setFeedError(toUserMessage(err));
+    }
+  };
+
+  const handleSaveItem = async (draft: ContributionDraft, existingId?: string) => {
+    if (existingId) {
+      await updateContribution(existingId, draft);
+      const refreshed = await getContribution(existingId);
+      if (refreshed) {
+        replaceItem(refreshed);
+      }
+      setEditingItem(null);
+      return;
+    }
+
+    const created = await createContribution(currentUser, draft);
+    setItems((prev) => [created, ...prev]);
+  };
+
+  const handleSelectItem = async (item: ArchiveItem) => {
+    setSelectedItem(item);
+    try {
+      const full = await getContribution(item.id);
+      if (full) setSelectedItem(full);
+    } catch (err) {
+      setFeedError(toUserMessage(err));
+    }
+  };
+
+  const handleDelete = async (item: ArchiveItem) => {
+    if (!window.confirm('Remove this contribution from the archive?')) return;
+    try {
+      await deleteContribution(item.id);
+      setItems((prev) => prev.filter((entry) => entry.id !== item.id));
+      setSelectedItem(null);
+    } catch (err) {
+      setFeedError(toUserMessage(err));
+    }
+  };
+
+  const handleUpdateUser = async (updatedUser: CommunityMember) => {
+    await updateOwnProfile(updatedUser.id, updatedUser);
+    await refreshProfile();
+  };
+
   const categoryCounts = {
     museum: items.filter((i) => i.category === 'museum').length,
     recipes: items.filter((i) => i.category === 'recipes').length,
     memories: items.filter((i) => i.category === 'memories').length,
     wisdom: items.filter((i) => i.category === 'wisdom').length,
-    wall: members.length,
+    wall: visibleMembers.length,
   };
 
-  // Featured Item: Recipe 1 or top starred item
-  const featuredItem = items.find((i) => i.id === 'recipe-1') || items[0];
-
   return (
-    <div className="min-h-screen bg-[#111210] text-[#F5EFE3] flex flex-col font-sans selection:bg-[#E8B45A]/30 selection:text-[#ffd187]">
-      {/* 3-Zone Top Bar Navigation */}
+    <div className="phone-shell text-[#F5EFE3] selection:bg-[#E8B45A]/30 selection:text-[#ffd187]">
       <Header
         currentCategory={currentCategory}
         onSelectCategory={setCurrentCategory}
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileModalOpen(true)}
-        onOpenAddModal={() => setIsAddModalOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full">
-        {currentCategory === 'all' && (
-          <div className="space-y-12">
-            {/* Sanctuary Prologue */}
-            <div className="text-center max-w-3xl mx-auto pt-2 pb-6">
-              <span className="text-xs font-semibold tracking-widest uppercase text-[#E8B45A] mb-2 block">
-                Open-Source Community Sanctuary
-              </span>
-              <h1 className="font-editorial text-3xl sm:text-5xl text-[#F5EFE3] font-normal tracking-tight leading-tight mb-4">
-                University of Hathbodhiya
-              </h1>
-              <p className="text-sm sm:text-base text-[#A8A196] leading-relaxed">
-                An intimate fellowship archive preserving the artwork, handwritten articles, comforting recipes, house hymns, and golden guidance given to us without expectations.
-              </p>
-            </div>
-
-            {/* Featured Memory Hero */}
-            {featuredItem && (
-              <FeaturedMemory
-                item={featuredItem}
-                onSelect={(item) => setSelectedItem(item)}
-                onStar={handleToggleStar}
-                isStarred={featuredItem.starredBy.includes(currentUser.email)}
-              />
-            )}
-
-            {/* The 5 Archival Rooms */}
-            <CategoryNavGrid
-              onSelectCategory={setCurrentCategory}
-              counts={categoryCounts}
-            />
-
-            {/* Recent Communal Musings (Latest Activity stream) */}
-            <div>
-              <div className="flex items-baseline justify-between mb-6 pb-2 border-b border-[#2E2A25]">
-                <h3 className="font-editorial text-2xl text-[#F5EFE3] font-medium">
-                  Recent Additions Across All Rooms
-                </h3>
-                <span className="text-xs text-[#6E675D]">
-                  Living Community Feed
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {items.slice(0, 6).map((item) => {
-                  const isStarred = item.starredBy.includes(currentUser.email);
-                  const hasImage = item.images && item.images.length > 0;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="group flex flex-col justify-between rounded-xl bg-[#22201D] hover:bg-[#2B2824] border border-[#2E2A25] hover:border-[#423D35] transition-all overflow-hidden"
-                    >
-                      <div>
-                        {hasImage && (
-                          <div
-                            onClick={() => setSelectedItem(item)}
-                            className="aspect-16/10 w-full overflow-hidden bg-[#181714] cursor-pointer"
-                          >
-                            <img
-                              src={item.images[0]}
-                              alt={item.title}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                            />
-                          </div>
-                        )}
-
-                        <div className="p-5">
-                          {/* Unboxed Metadata */}
-                          <div className="flex items-center gap-2 text-[11px] text-[#A8A196] mb-2">
-                            <span className="text-[#E8B45A] font-medium capitalize">
-                              {item.category.replace('_', ' ')}
-                            </span>
-                            <span aria-hidden="true">·</span>
-                            <span>{item.createdAt}</span>
-                          </div>
-
-                          <h4
-                            onClick={() => setSelectedItem(item)}
-                            className="font-editorial text-xl text-[#F5EFE3] group-hover:text-[#E8B45A] transition-colors font-medium leading-snug cursor-pointer"
-                            style={{ textWrap: 'balance' }}
-                          >
-                            {item.title}
-                          </h4>
-
-                          {item.subtitle && (
-                            <p className="font-editorial text-xs sm:text-sm text-[#E8B45A]/90 italic mt-0.5 mb-2">
-                              {item.subtitle}
-                            </p>
-                          )}
-
-                          <p className="text-xs sm:text-sm text-[#A8A196] leading-relaxed line-clamp-3">
-                            {item.content}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Card Footer */}
-                      <div className="px-5 py-3 border-t border-[#2E2A25] flex items-center justify-between text-xs text-[#A8A196]">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <img
-                            src={item.author.avatar}
-                            alt={item.author.name}
-                            referrerPolicy="no-referrer"
-                            className="w-5 h-5 rounded-full object-cover shrink-0"
-                          />
-                          <span className="truncate text-xs text-[#A8A196]">{item.author.name}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => handleToggleStar(item.id)}
-                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors cursor-pointer ${
-                              isStarred
-                                ? 'text-[#E8B45A] font-semibold'
-                                : 'text-[#A8A196] hover:text-[#F5EFE3]'
-                            }`}
-                          >
-                            <Star className={`w-3.5 h-3.5 ${isStarred ? 'fill-[#E8B45A]' : ''}`} />
-                            <span className="tabular-nums">{item.starsCount}</span>
-                          </button>
-
-                          <button
-                            onClick={() => setSelectedItem(item)}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-[#A8A196] hover:text-[#F5EFE3] transition-colors cursor-pointer"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span className="tabular-nums">{item.comments.length}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+      <main className="w-full min-h-dvh pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] px-5 overflow-x-hidden">
+        {feedError && (
+          <div className="mb-4 p-3 rounded-lg bg-[#181714] text-xs text-[#ffb4ab]">
+            {feedError}
           </div>
         )}
 
-        {/* Category Views */}
+        {currentCategory === 'all' && (
+          <HomeView
+            items={items}
+            currentUser={currentUser}
+            counts={categoryCounts}
+            onSelectCategory={setCurrentCategory}
+            onSelectItem={(item) => void handleSelectItem(item)}
+            onOpenAddModal={() => {
+              setEditingItem(null);
+              setIsAddModalOpen(true);
+            }}
+          />
+        )}
+
         {currentCategory === 'museum' && (
           <MuseumView
             items={items}
-            onSelect={(item) => setSelectedItem(item)}
-            onStar={handleToggleStar}
-            currentUserEmail={currentUser.email}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
+            onSelect={(item) => void handleSelectItem(item)}
+            onStar={(id) => void handleToggleStar(id)}
+            currentUserId={currentUser.id}
+            onOpenAddModal={() => {
+              setEditingItem(null);
+              setIsAddModalOpen(true);
+            }}
           />
         )}
 
         {currentCategory === 'recipes' && (
           <RecipesView
             items={items}
-            onSelect={(item) => setSelectedItem(item)}
-            onStar={handleToggleStar}
-            currentUserEmail={currentUser.email}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
+            onSelect={(item) => void handleSelectItem(item)}
+            onStar={(id) => void handleToggleStar(id)}
+            currentUserId={currentUser.id}
+            onOpenAddModal={() => {
+              setEditingItem(null);
+              setIsAddModalOpen(true);
+            }}
           />
         )}
 
         {currentCategory === 'memories' && (
           <AlbumsView
             items={items}
-            onSelect={(item) => setSelectedItem(item)}
-            onStar={handleToggleStar}
-            currentUserEmail={currentUser.email}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
+            onSelect={(item) => void handleSelectItem(item)}
+            onStar={(id) => void handleToggleStar(id)}
+            currentUserId={currentUser.id}
+            onOpenAddModal={() => {
+              setEditingItem(null);
+              setIsAddModalOpen(true);
+            }}
           />
         )}
 
         {currentCategory === 'wisdom' && (
           <WisdomView
             items={items}
-            onSelect={(item) => setSelectedItem(item)}
-            onStar={handleToggleStar}
-            currentUserEmail={currentUser.email}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
+            onSelect={(item) => void handleSelectItem(item)}
+            onStar={(id) => void handleToggleStar(id)}
+            currentUserId={currentUser.id}
+            onOpenAddModal={() => {
+              setEditingItem(null);
+              setIsAddModalOpen(true);
+            }}
           />
         )}
 
         {currentCategory === 'wall' && (
           <CommunityWallView
-            members={members}
+            members={visibleMembers}
             currentUser={currentUser}
-            onSelectUserToImpersonate={handleSelectMember}
+            items={items}
             onOpenProfile={() => setIsProfileModalOpen(true)}
-            onExport={() => StorageService.exportArchive()}
+            onExport={() => void exportArchiveJson(items, visibleMembers)}
+            onSelectItem={(item) => void handleSelectItem(item)}
           />
+        )}
+
+        {cursor && (
+          <div className="mt-8 flex justify-center pb-4">
+            <button
+              type="button"
+              disabled={loadingFeed}
+              onClick={() => void loadPage(false)}
+              className="px-4 py-2 rounded-lg text-xs font-medium text-[#E8B45A] bg-[#181714]"
+            >
+              {loadingFeed ? 'Loading…' : 'Load earlier memories'}
+            </button>
+          </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-16 border-t border-[#2E2A25] bg-[#111210] py-10 text-xs text-[#A8A196]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-center sm:text-left">
-            <p className="font-editorial text-base text-[#F5EFE3]">
-              University of Hathbodhiya
-            </p>
-            <p className="text-[#6E675D] mt-0.5">
-              Open-Source Living Fellowship Archive · Preserved with love without expectations.
-            </p>
-          </div>
+      <BottomNav currentCategory={currentCategory} onSelectCategory={setCurrentCategory} />
 
-          <div className="flex items-center gap-6 text-[#A8A196]">
-            <button
-              onClick={() => StorageService.exportArchive()}
-              className="hover:text-[#E8B45A] transition-colors cursor-pointer"
-            >
-              Export Archive (JSON)
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm('Reset archive to default seeded memories?')) {
-                  StorageService.resetDefaults();
-                  window.location.reload();
-                }
-              }}
-              className="hover:text-[#ffb4ab] transition-colors cursor-pointer"
-            >
-              Reset to Defaults
-            </button>
-          </div>
-        </div>
-      </footer>
-
-      {/* Universal Add Modal */}
       <AddArchiveModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleSaveNewItem}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingItem(null);
+        }}
+        onSave={handleSaveItem}
         currentUser={currentUser}
+        editingItem={editingItem}
       />
 
-      {/* Item Detail Modal */}
       <ItemDetailModal
         item={selectedItem}
         onClose={() => setSelectedItem(null)}
-        onStar={handleToggleStar}
-        onAddComment={handleAddComment}
+        onStar={(id) => void handleToggleStar(id)}
+        onAddComment={(id, text) => void handleAddComment(id, text)}
+        onEdit={(item) => {
+          setEditingItem(item);
+          setSelectedItem(null);
+          setIsAddModalOpen(true);
+        }}
+        onDelete={(item) => void handleDelete(item)}
         currentUser={currentUser}
       />
 
-      {/* Profile & Switcher Modal */}
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         currentUser={currentUser}
-        allMembers={members}
         onUpdateCurrentUser={handleUpdateUser}
-        onSelectMember={handleSelectMember}
       />
     </div>
   );

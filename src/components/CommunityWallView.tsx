@@ -1,166 +1,116 @@
-import React from 'react';
-import { CommunityMember } from '../types';
-import { Star, FileText, Download, UserCheck, Heart } from 'lucide-react';
+import { useState, type FC } from 'react';
+import { ArchiveItem, CommunityMember } from '../types';
+import { AdminPanel } from './AdminPanel';
+import { isSteward } from '../services/users';
 
 interface CommunityWallViewProps {
   members: CommunityMember[];
   currentUser: CommunityMember;
-  onSelectUserToImpersonate: (member: CommunityMember) => void;
+  items: ArchiveItem[];
   onOpenProfile: () => void;
   onExport: () => void;
+  onSelectItem: (item: ArchiveItem) => void;
 }
 
-export const CommunityWallView: React.FC<CommunityWallViewProps> = ({
+export const CommunityWallView: FC<CommunityWallViewProps> = ({
   members,
   currentUser,
-  onSelectUserToImpersonate,
+  items,
   onOpenProfile,
   onExport,
+  onSelectItem,
 }) => {
+  const [historyMember, setHistoryMember] = useState<CommunityMember | null>(null);
+  const historyItems = historyMember ? items.filter((item) => item.authorId === historyMember.id) : [];
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#2E2A25]">
-        <div>
-          <div className="text-xs text-[#E8B45A] font-semibold tracking-wide uppercase mb-1">
-            Graduates Fellowship
-          </div>
-          <h2 className="font-editorial text-3xl sm:text-4xl text-[#F5EFE3] font-medium">
-            Community Wall
-          </h2>
-          <p className="text-xs sm:text-sm text-[#A8A196] mt-1 max-w-2xl leading-relaxed">
-            The brotherhood and sisterhood shaped around the Hathbodhiya table. Every graduate contributes memories, receives stars of gratitude, and preserves this legacy.
-          </p>
+    <div className="flex flex-col w-full gap-5">
+      <header>
+        <span className="text-[11px] text-[#E8B45A] uppercase tracking-widest font-semibold">
+          Graduates fellowship
+        </span>
+        <h2 className="font-editorial text-[34px] leading-[42px] text-[#F5EFE3] mt-1">Community</h2>
+        <p className="text-[13px] text-[#A8A196] mt-1">
+          The brotherhood and sisterhood shaped around the Hathbodhiya table.
+        </p>
+      </header>
+
+      <button
+        type="button"
+        onClick={onOpenProfile}
+        className="p-4 rounded-xl bg-[#22201D] flex items-center gap-3 text-left overflow-hidden"
+      >
+        <img
+          src={currentUser.avatar}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="w-12 h-12 rounded-full object-cover shrink-0"
+        />
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold text-[#F5EFE3] truncate">{currentUser.name}</p>
+          <p className="text-[12px] text-[#A8A196] truncate">Edit my profile</p>
         </div>
+      </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onExport}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#F5EFE3] bg-[#22201D] hover:bg-[#2B2824] border border-[#2E2A25] rounded-md transition-colors cursor-pointer"
-            title="Download full community archive as JSON"
-          >
-            <Download className="w-3.5 h-3.5 text-[#E8B45A]" />
-            <span>Export Archive</span>
-          </button>
+      {isSteward(currentUser) && <AdminPanel currentUser={currentUser} />}
 
-          <button
-            onClick={onOpenProfile}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] rounded-md transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Edit My Profile</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Current Active Session Notice */}
-      <div className="p-4 rounded-xl bg-[#181714] border border-[#2E2A25] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <img
-            src={currentUser.avatar}
-            alt={currentUser.name}
-            referrerPolicy="no-referrer"
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E8B45A]"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#6E675D]">Signed In As:</span>
-              <span className="text-sm font-semibold text-[#F5EFE3]">{currentUser.name}</span>
-            </div>
-            <p className="text-xs text-[#A8A196]">{currentUser.email}</p>
+      {historyMember && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-editorial text-[20px] text-[#F5EFE3] truncate">
+              {historyMember.name}
+            </h3>
+            <button type="button" onClick={() => setHistoryMember(null)} className="text-[12px] text-[#E8B45A] shrink-0">
+              Back
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1 text-[#E8B45A]">
-            <Star className="w-4 h-4 fill-[#E8B45A]" />
-            <span className="font-semibold tabular-nums">{currentUser.starsEarned}</span>
-            <span className="text-[#A8A196]">stars earned</span>
-          </div>
-          <div className="flex items-center gap-1 text-[#F5EFE3]">
-            <FileText className="w-4 h-4 text-[#A8A196]" />
-            <span className="font-semibold tabular-nums">{currentUser.contributionsCount}</span>
-            <span className="text-[#A8A196]">contributions</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Wall of Profiles Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {members.map((member) => {
-          const isCurrent = member.id === currentUser.id;
-
-          return (
-            <div
-              key={member.id}
-              className={`p-6 rounded-2xl bg-[#22201D] border transition-all flex flex-col justify-between ${
-                isCurrent
-                  ? 'border-[#E8B45A]/60 shadow-lg ring-1 ring-[#E8B45A]/30'
-                  : 'border-[#2E2A25] hover:border-[#423D35]'
-              }`}
+          {historyItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelectItem(item)}
+              className="w-full text-left p-4 rounded-xl bg-[#22201D]"
             >
-              <div>
-                {/* Member Header */}
-                <div className="flex items-start gap-4 mb-4">
-                  <img
-                    src={member.avatar}
-                    alt={member.name}
-                    referrerPolicy="no-referrer"
-                    className="w-14 h-14 rounded-full object-cover ring-2 ring-[#2E2A25] shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-editorial text-xl text-[#F5EFE3] font-medium truncate">
-                      {member.name}
-                    </h3>
-                    <p className="text-xs text-[#E8B45A] font-medium truncate">
-                      {member.gradDegree || 'Graduate Fellowship'}
-                    </p>
-                    <p className="text-[11px] text-[#6E675D] mt-0.5">
-                      {member.fellowshipYear}
-                    </p>
-                  </div>
-                </div>
+              <p className="text-[11px] text-[#E8B45A] capitalize">{item.category}</p>
+              <h4 className="font-editorial text-[18px] text-[#F5EFE3]">{item.title}</h4>
+            </button>
+          ))}
+        </div>
+      )}
 
-                {/* Personal Note of Gratitude */}
-                <div className="p-3.5 rounded-lg bg-[#181714] border border-[#2E2A25] mb-4">
-                  <div className="flex items-center gap-1.5 text-[11px] text-[#A8A196] mb-1">
-                    <Heart className="w-3 h-3 text-[#E8B45A]" />
-                    <span>Memory of Gratitude</span>
-                  </div>
-                  <p className="text-xs text-[#d3c4b2] italic leading-relaxed">
-                    &ldquo;{member.noteOfGratitude}&rdquo;
-                  </p>
-                </div>
-              </div>
-
-              {/* Stats & Actions */}
-              <div className="pt-3 border-t border-[#2E2A25] flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3 text-[#A8A196]">
-                  <span className="flex items-center gap-1 text-[#E8B45A]">
-                    <Star className="w-3.5 h-3.5 fill-[#E8B45A]" />
-                    <strong className="tabular-nums">{member.starsEarned}</strong>
-                  </span>
-                  <span className="text-[#6E675D]">·</span>
-                  <span>{member.contributionsCount} posts</span>
-                </div>
-
-                {!isCurrent ? (
-                  <button
-                    onClick={() => onSelectUserToImpersonate(member)}
-                    className="text-xs text-[#A8A196] hover:text-[#E8B45A] underline decoration-[#2E2A25] hover:decoration-[#E8B45A] cursor-pointer"
-                  >
-                    Switch to {member.name.split(' ')[0]}
-                  </button>
-                ) : (
-                  <span className="text-[11px] text-[#E8B45A] font-medium">
-                    Active Account
-                  </span>
-                )}
+      <div className="flex flex-col gap-3">
+        {members.map((member) => (
+          <button
+            key={member.id}
+            type="button"
+            onClick={() => setHistoryMember(member)}
+            className="p-5 rounded-xl bg-[#22201D] text-left overflow-hidden"
+          >
+            <div className="flex items-start gap-3">
+              <img
+                src={member.avatar}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="w-14 h-14 rounded-full object-cover shrink-0"
+              />
+              <div className="min-w-0">
+                <h3 className="font-editorial text-[20px] text-[#F5EFE3] truncate">{member.name}</h3>
+                <p className="text-[12px] text-[#E8B45A] truncate">{member.gradDegree || 'Graduate Fellowship'}</p>
               </div>
             </div>
-          );
-        })}
+            <p className="text-[13px] text-[#d3c4b2] italic mt-3 line-clamp-3">
+              “{member.noteOfGratitude || 'A quiet place at the table.'}”
+            </p>
+            <p className="text-[11px] text-[#6E675D] mt-3">
+              {member.starsEarned} stars · {member.contributionsCount} posts
+            </p>
+          </button>
+        ))}
       </div>
+
+      <button type="button" onClick={onExport} className="text-[12px] text-[#A8A196] py-2">
+        Export archive
+      </button>
     </div>
   );
 };

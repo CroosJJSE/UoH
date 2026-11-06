@@ -1,63 +1,62 @@
 export type CategoryType = 'all' | 'museum' | 'recipes' | 'memories' | 'wisdom' | 'wall';
 
+export type ArchiveCategory = 'museum' | 'recipes' | 'memories' | 'wisdom';
+
 export type MuseumSubCategory = 'art' | 'articles' | 'songs';
 export type RecipeSubCategory = 'mains' | 'baking' | 'warm_beverages' | 'comfort';
 export type WisdomSubCategory = 'faith_perspective' | 'hospitality' | 'golden_advice' | 'reflections';
 
+export type UserRole = 'MASTER_ADMIN' | 'ADMIN' | 'MEMBER';
+export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+
 export interface Comment {
   id: string;
+  authorId: string;
   authorName: string;
   authorAvatar: string;
-  authorEmail: string;
+  authorEmail?: string;
   text: string;
   createdAt: string;
 }
 
+export interface ArchiveAuthor {
+  name: string;
+  avatar: string;
+  fellowshipYear?: string;
+  email?: string;
+}
+
 export interface ArchiveItem {
   id: string;
-  category: 'museum' | 'recipes' | 'memories' | 'wisdom';
+  authorId: string;
+  category: ArchiveCategory;
   subCategory?: string;
   title: string;
   subtitle?: string;
   content: string;
   images: string[];
-  author: {
-    name: string;
-    email: string;
-    avatar: string;
-    fellowshipYear?: string;
-  };
+  author: ArchiveAuthor;
   createdAt: string;
   starsCount: number;
-  starredBy: string[]; // List of user emails
+  starredBy: string[];
   comments: Comment[];
-  
-  // Specific category metadata
+  commentsCount: number;
   metadata?: {
-    // For Recipes
     ingredients?: string[];
     steps?: string[];
     prepTime?: string;
     servings?: string;
     secretTouch?: string;
-    
-    // For Museum Art
     medium?: string;
     yearCreated?: string;
     scriptureVerse?: string;
-    
-    // For Museum Articles
     readingTime?: string;
     scripturePassage?: string;
-    
-    // For Museum Songs
     songTitle?: string;
     artist?: string;
     alexaPrompt?: string;
     lyricsSnippet?: string;
     houseMemory?: string;
-    
-    // For Wisdom
     goldenQuote?: string;
     lifePrinciple?: string;
   };
@@ -66,11 +65,30 @@ export interface ArchiveItem {
 export interface CommunityMember {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   avatar: string;
   gradDegree?: string;
   fellowshipYear: string;
   noteOfGratitude: string;
   starsEarned: number;
   contributionsCount: number;
+  role: UserRole;
+  status: AccountStatus;
+}
+
+export interface AccountRecord {
+  uid: string;
+  email: string;
+  role: UserRole;
+  status: AccountStatus;
+}
+
+export interface ContributionDraft {
+  category: ArchiveCategory;
+  subCategory: string;
+  title: string;
+  subtitle?: string;
+  content: string;
+  images: string[];
+  metadata?: ArchiveItem['metadata'];
 }
