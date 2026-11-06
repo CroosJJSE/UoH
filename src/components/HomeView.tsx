@@ -219,8 +219,11 @@ export function HomeView({
                   </p>
                 </div>
               ) : null}
-              <h4 className="font-editorial text-[20px] leading-7 text-[#F5EFE3] mt-3">{item.title}</h4>
-              <p className="text-[13px] leading-5 text-[#A8A196] line-clamp-2 mt-1">{item.content}</p>
+              {item.content ? (
+                <p className="text-[13px] leading-5 text-[#A8A196] line-clamp-2 mt-1">{item.content}</p>
+              ) : item.category === 'recipes' && item.metadata?.ingredients?.length ? (
+                <p className="text-[12px] leading-5 text-[#E8B45A]/90 mt-1">{item.metadata.ingredients.length} ingredients</p>
+              ) : null}
               <div className="flex items-center gap-2 pt-3 mt-3 min-w-0">
                 <img
                   src={item.author.avatar}

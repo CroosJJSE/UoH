@@ -2,6 +2,97 @@ import { ArchiveItem, CommunityMember } from '../types';
 
 export const INITIAL_MEMBERS: CommunityMember[] = [
   {
+    id: 'member-george-sarah',
+    name: 'George & Sarah',
+    email: 'george.sarah@hathbodhiya.community',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ji-72M2SJbFy9MDAMhsRjL07188Xqee9khqfOt9aqndhHk4dFzJOBQ5-O8eUy7xPAKvPz2Skt8TVptQyP6Vxo1CCzhy7KKgTs0E1SCtvWyDznOCkGRhJOP7jJjNX10pWuHoAHzpNkLODkr7g9C857BaBLsX4qvQJWQGcRcaxn8CrDPDjiX3njd9y79d4xxwUlvzEa_rApzHJ4tzhqqCU0Fm_PCR3aUaolzAw92Y',
+    gradDegree: 'Hearth Pillar',
+    fellowshipYear: 'Fellowship Hearth',
+    noteOfGratitude: 'Preserved the 1938 Sabbath Hymnal transcript & shared the ancestral Cardamom Chai recipe.',
+    starsEarned: 45,
+    contributionsCount: 16,
+    role: 'ADMIN',
+    status: 'approved',
+  },
+  {
+    id: 'member-mathew',
+    name: 'Mathew K.',
+    email: 'mathew.k@hathbodhiya.community',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG6DInl_5gtLinIkh84Bo6mg25eXcMpZ16-2EMZVnoONBbgg_pFCS4jXyyThkSC9hruaSHgXHOtBGNHXUghB1Q6APpSEBh0N8233o5_x2uLngbk2hbglnGkDCjTnjnfUMfZ2r_Pnk7H_2EVFx3DPuHMDw6LK8jITmGfQZczkUngzwdicYQ9OLhzCrhGGc8rp9LUircXXiozzTiUE7raFoL9zse0dkgkkHsnYTRUTM',
+    gradDegree: 'Chronicler',
+    fellowshipYear: 'Class of 2021',
+    noteOfGratitude: 'Archived 14 audio field testimonies of monsoon village gatherings.',
+    starsEarned: 41,
+    contributionsCount: 14,
+    role: 'MEMBER',
+    status: 'approved',
+  },
+  {
+    id: 'member-joy',
+    name: 'Joy T.',
+    email: 'joy.t@hathbodhiya.community',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB875Q4pHpHGvzbvdvmZ9WYCmm71XCLiLM8Dzqn_hHAdbnPL78cmiL8Q-b1QLMh1PTL6aunqneplZglxbaY2zOVuQZQGubhw_p4vew986-GufAwkOG3TimpJVgcfsFimED8XQjkzCjCxXUegsqpE3p5PmGxTML6sviS7Ag4FP7uW1Bv64GhbkOX_7uk1VlDIB7wPzEjf9nGB4jBzdoj9bbPteRZHPXrq-y4VPxuI-o',
+    gradDegree: 'Keeper of Bread',
+    fellowshipYear: 'Class of 2020',
+    noteOfGratitude: 'Contributed grandmother’s sourdough fermentation logs and seasonal prayers.',
+    starsEarned: 37,
+    contributionsCount: 12,
+    role: 'MEMBER',
+    status: 'approved',
+  },
+  {
+    id: 'member-hannah-v',
+    name: 'Hannah V.',
+    email: 'hannah.v@hathbodhiya.community',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuARLXzrSSoXrDVmbggJXqNEglffKGgJi1mvtXprgQBGGHRH9VUJK-lMgs09IIvbh5a8AfN2NvHG81e2uW07rLfPb3eRX1bWoAeyJbkg6yvbZfMmjPgTeruw82EakdSpfh2caUjELP_7rBBMrslgQbgofKRk_uXSfk6lpMsDUa50wWwBJSSB2ujxSrhkoRthZfkiG5Isn_aHbErQGVPYpj3jJ-K8Nh8KqkChktAOBR0',
+    gradDegree: 'Song Weaver',
+    fellowshipYear: 'Class of 2022',
+    noteOfGratitude: 'Digitized 9 early hand-notated chorales from the coastal mission chapel.',
+    starsEarned: 34,
+    contributionsCount: 9,
+    role: 'MEMBER',
+    status: 'approved',
+  },
+  {
+    id: 'member-elias',
+    name: 'Elias R.',
+    email: 'elias.r@hathbodhiya.community',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCwglkgVz3xNsG5LLDXLp3Q8Ny6Xd8gSpgFx5hoLJ1INWg_3UllgfOKvff44jRp_ESu4w5Do7KIiftc0f0GETW5FSUBXpk-fX0S84ESZM2VQaYBS1w5SxLm3X-qMA92ALmA2TXt5rLDi8uDOJi7MhEJOtVKvv6GMfBVzgG_r0KUoMM5mTgNhc03c_AURIC3vwwwvAMtPYQ9rn-E58x0aSNvbQTVvQvvrctyPvZN9yI',
+    gradDegree: 'Archivist',
+    fellowshipYear: 'Class of 2021',
+    noteOfGratitude: 'Submitted physical scans of the 1952 Hathbodhiya Botanical field journal.',
+    starsEarned: 29,
+    contributionsCount: 8,
+    role: 'MEMBER',
+    status: 'approved',
+  },
+  {
+    id: 'member-david',
+    name: 'David P.',
+    email: 'david.p@hathbodhiya.community',
+    avatar: '',
+    gradDegree: 'Woodcraft Caretaker',
+    fellowshipYear: 'Class of 2023',
+    noteOfGratitude: 'Restored the heritage fellowship bench carved in teak, summer 1964.',
+    starsEarned: 28,
+    contributionsCount: 7,
+    role: 'MEMBER',
+    status: 'approved',
+  },
+  {
+    id: 'member-sarah-v',
+    name: 'Sarah V.',
+    email: 'sarah.v@hathbodhiya.community',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADrFUKkTeRRCrpyNGcNIvgUsEEPY-wDZUfzaJprdAUHi4ZahLJG6ivDkZ_iu5qZVWxD9ds0opzldXlENFwAOMX7wTLZcPZux_Q4Z6BD7AQqSI44LB86bpuzkMPTS4fbRc7F6K25VG_GMAAV0bI9Gk06wimDnLzYLxGwsbCjlCLgP_FaP3qn94KknTIFWLnXp7NsxlLRUfzjpmg1bYr1C1c3cxI9Ung7fqKdI3Z-5o',
+    gradDegree: 'Story Gatherer',
+    fellowshipYear: 'Class of 2023',
+    noteOfGratitude: 'Collected spoken memories of communal baking from elder sisters.',
+    starsEarned: 19,
+    contributionsCount: 6,
+    role: 'MEMBER',
+    status: 'approved',
+  },
+  {
     id: 'member-1',
     name: 'Rajaraja Croos',
     email: 'rajarajacroos2000@gmail.com',
@@ -11,72 +102,58 @@ export const INITIAL_MEMBERS: CommunityMember[] = [
     noteOfGratitude: 'They opened their door to me when I was lost in academic pressure. Every bowl of warm soup and every patient talk reshaped how I view God\'s grace.',
     starsEarned: 18,
     contributionsCount: 7,
+    role: 'MASTER_ADMIN',
+    status: 'approved',
   },
   {
-    id: 'member-2',
-    name: 'Priscilla David',
-    email: 'priscilla.d@hathbodhiya.community',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    gradDegree: 'Ph.D Molecular Biology, 2023',
-    fellowshipYear: 'Fellowship Class of 2019-2023',
-    noteOfGratitude: 'Learning that hospitality is a spiritual discipline that requires no pretense. Sitting at the Hathbodhiya table kept my faith alive through tough lab seasons.',
-    starsEarned: 24,
-    contributionsCount: 9,
+    id: 'member-caleb',
+    name: 'Caleb M.',
+    email: 'caleb.m@hathbodhiya.community',
+    avatar: '',
+    gradDegree: 'Fellow Traveler',
+    fellowshipYear: 'Class of 2024',
+    noteOfGratitude: 'Shared an introductory offering: morning prayer for craftsmen.',
+    starsEarned: 8,
+    contributionsCount: 2,
+    role: 'MEMBER',
+    status: 'approved',
   },
   {
-    id: 'member-3',
-    name: 'Samuel Ebenezer',
-    email: 'samuel.eb@hathbodhiya.community',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    gradDegree: 'M.Eng Structural Engineering, 2024',
-    fellowshipYear: 'Fellowship Class of 2022-Present',
-    noteOfGratitude: 'Whenever the world demanded performance, this home reminded us that we are sons and daughters first. Forever grateful for the claypot stews and life advice.',
-    starsEarned: 15,
-    contributionsCount: 5,
+    id: 'member-esther',
+    name: 'Esther N.',
+    email: 'esther.n@hathbodhiya.community',
+    avatar: '',
+    gradDegree: 'Welcome Guest',
+    fellowshipYear: 'Class of 2024',
+    noteOfGratitude: 'Brought a handwritten family spice chart from Coonoor.',
+    starsEarned: 4,
+    contributionsCount: 1,
+    role: 'MEMBER',
+    status: 'approved',
   },
   {
-    id: 'member-4',
-    name: 'Hannah Grace Matthews',
-    email: 'hannah.m@hathbodhiya.community',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    gradDegree: 'M.A. English Literature, 2023',
-    fellowshipYear: 'Fellowship Class of 2020-Present',
-    noteOfGratitude: 'The handwritten essays and biblical reflections tucked into notebooks by the lamp inspired my entire master thesis on grace in everyday living.',
-    starsEarned: 29,
-    contributionsCount: 11,
+    id: 'member-priscilla-new',
+    name: 'Priscilla',
+    email: 'priscilla@hathbodhiya.community',
+    avatar: '',
+    gradDegree: 'Fresh Seeker',
+    fellowshipYear: 'Class of 2025',
+    noteOfGratitude: 'Contributed words of gratitude for the sanctuary library.',
+    starsEarned: 1,
+    contributionsCount: 1,
+    role: 'MEMBER',
+    status: 'approved',
   },
-  {
-    id: 'member-5',
-    name: 'Joshua Christopher',
-    email: 'joshua.c@hathbodhiya.community',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    gradDegree: 'M.D. Pediatrics Resident, 2025',
-    fellowshipYear: 'Fellowship Class of 2021-Present',
-    noteOfGratitude: 'I learned more about genuine Christian care and bedside presence by watching how tea was brewed and served here than in lecture halls.',
-    starsEarned: 12,
-    contributionsCount: 4,
-  },
-  {
-    id: 'member-6',
-    name: 'Kavitha Emmanuel',
-    email: 'kavitha.e@hathbodhiya.community',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    gradDegree: 'M.Sc Data Science, 2024',
-    fellowshipYear: 'Fellowship Class of 2022-Present',
-    noteOfGratitude: 'They never asked for anything in return, not even praise. That quiet Christlikeness is the standard for my own home one day.',
-    starsEarned: 21,
-    contributionsCount: 6,
-  }
 ];
 
 export const INITIAL_ARCHIVE_ITEMS: ArchiveItem[] = [
   // --- MUSEUM: ARTWORK ---
   {
     id: 'museum-art-1',
+    authorId: 'member-1',
     category: 'museum',
     subCategory: 'art',
     title: 'Sanctuary Under the Olive Trees',
-    subtitle: 'Charcoal & sepia study on aged parchment',
     content: 'Drawn quietly at the back verandah during the quiet hour before evening fellowship. A study of an enduring shelter where travelers find rest, reminding us that God is an unshakeable dwelling place across all our generations.',
     images: ['/src/assets/images/charcoal_landscape_drawing_1793896594505.jpg'],
     author: {
@@ -87,7 +164,8 @@ export const INITIAL_ARCHIVE_ITEMS: ArchiveItem[] = [
     },
     createdAt: '2024-10-14',
     starsCount: 16,
-    starredBy: ['priscilla.d@hathbodhiya.community', 'samuel.eb@hathbodhiya.community'],
+    starredBy: ['member-2', 'member-3'],
+    commentsCount: 2,
     metadata: {
       medium: 'Charcoal, graphite and tea wash on cold-press archival paper',
       yearCreated: 'Autumn 2024',
@@ -96,6 +174,7 @@ export const INITIAL_ARCHIVE_ITEMS: ArchiveItem[] = [
     comments: [
       {
         id: 'c-1',
+        authorId: 'member-4',
         authorName: 'Hannah Grace Matthews',
         authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
         authorEmail: 'hannah.m@hathbodhiya.community',
@@ -104,6 +183,7 @@ export const INITIAL_ARCHIVE_ITEMS: ArchiveItem[] = [
       },
       {
         id: 'c-2',
+        authorId: 'member-5',
         authorName: 'Joshua Christopher',
         authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
         authorEmail: 'joshua.c@hathbodhiya.community',
@@ -116,10 +196,10 @@ export const INITIAL_ARCHIVE_ITEMS: ArchiveItem[] = [
   // --- MUSEUM: ESSAY / ARTICLE ---
   {
     id: 'museum-article-1',
+    authorId: 'member-4',
     category: 'museum',
     subCategory: 'articles',
     title: 'The Table as an Altar of Grace',
-    subtitle: 'On Christian fellowship without performance or expectations',
     content: `When the modern world measures your worth by output, GPA, job titles, and pedigree, the greatest theological statement a believer can make is an unhurried wooden table loaded with warm food.
 
 At Hathbodhiya, nobody asks what your resume looks like before passing the bread. Christ never interviewed the crowds on the hillside before breaking the loaves; He had compassion on them because they were hungry and weary.
@@ -136,7 +216,8 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-08-20',
     starsCount: 22,
-    starredBy: ['rajarajacroos2000@gmail.com', 'kavitha.e@hathbodhiya.community'],
+    starredBy: ['member-1', 'member-6'],
+    commentsCount: 1,
     metadata: {
       readingTime: '4 min read',
       scripturePassage: 'Hebrews 13:2 & Luke 14:12-14',
@@ -144,6 +225,7 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     comments: [
       {
         id: 'c-3',
+        authorId: 'member-3',
         authorName: 'Samuel Ebenezer',
         authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
         authorEmail: 'samuel.eb@hathbodhiya.community',
@@ -156,10 +238,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
   // --- MUSEUM: SONGS & HYMNS LIST (ALEXA AT THE HOUSE) ---
   {
     id: 'museum-song-1',
+    authorId: 'member-2',
     category: 'museum',
     subCategory: 'songs',
     title: 'Be Thou My Vision (Audrey Assad Version)',
-    subtitle: 'The Sunday evening dishwashing & twilight hymn',
     content: 'Whenever Sunday fellowship winds down and 10 of us are in the small kitchen drying plates, pots, and spoons, Alexa is always told to play this acoustic version. The harmonies fill the hallway while we laugh and pack leftovers into tiffin boxes.',
     images: [],
     author: {
@@ -170,7 +252,8 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-09-05',
     starsCount: 19,
-    starredBy: ['rajarajacroos2000@gmail.com'],
+    starredBy: ['member-1'],
+    commentsCount: 0,
     metadata: {
       songTitle: 'Be Thou My Vision',
       artist: 'Audrey Assad (Inheritance Album)',
@@ -183,10 +266,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
 
   {
     id: 'museum-song-2',
+    authorId: 'member-3',
     category: 'museum',
     subCategory: 'songs',
     title: 'Turn Your Eyes Upon Jesus (Sovereign Grace Music)',
-    subtitle: 'The hymn played during exam season anxieties',
     content: 'During midterms and defense weeks, whoever walked into the living room looking stressed was handed a hot mug of cardamom tea while this song hummed softly from the Alexa speaker in the corner.',
     images: [],
     author: {
@@ -198,6 +281,7 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     createdAt: '2024-05-12',
     starsCount: 14,
     starredBy: [],
+    commentsCount: 0,
     metadata: {
       songTitle: 'Turn Your Eyes Upon Jesus',
       artist: 'Sovereign Grace Music',
@@ -210,10 +294,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
 
   {
     id: 'museum-song-3',
+    authorId: 'member-6',
     category: 'museum',
     subCategory: 'songs',
     title: 'Agnus Dei / Worthy is the Lamb',
-    subtitle: 'Saturday morning breakfast accompaniment',
     content: 'Waking up on the living room sofa bed to the smell of toasted bread and brewing coffee, with Michael W. Smith\'s live worship quietly playing in the kitchen.',
     images: [],
     author: {
@@ -225,6 +309,7 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     createdAt: '2024-04-02',
     starsCount: 11,
     starredBy: [],
+    commentsCount: 0,
     metadata: {
       songTitle: 'Agnus Dei',
       artist: 'Michael W. Smith',
@@ -235,14 +320,14 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     comments: [],
   },
 
-  // --- RECIPE BOOK ---
+  // --- RECIPE BOOK (NO STORY, NO PREP TIME, NO SERVINGS, NO SECRET TOUCH) ---
   {
     id: 'recipe-1',
+    authorId: 'member-1',
     category: 'recipes',
     subCategory: 'mains',
     title: 'Hathbodhiya Sabbath Slow-Claypot Stew',
-    subtitle: 'The hearty communal meal that fed dozens of hungry students',
-    content: 'This legendary stew was simmered in the heavy earthenware pot every time a big fellowship gathering was scheduled. Rich, comforting, deeply aromatic with whole spices, and served with crusty bread for dipping.',
+    content: '',
     images: ['/src/assets/images/home_cooked_comfort_stew_1793896595540.jpg'],
     author: {
       name: 'Rajaraja Croos',
@@ -252,10 +337,9 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-09-18',
     starsCount: 31,
-    starredBy: ['hannah.m@hathbodhiya.community', 'samuel.eb@hathbodhiya.community', 'priscilla.d@hathbodhiya.community'],
+    starredBy: ['member-4', 'member-3', 'member-2'],
+    commentsCount: 1,
     metadata: {
-      prepTime: '25 mins prep · 2.5 hrs slow simmer',
-      servings: '12-14 hearty portions (always prepared with extra for takeout boxes)',
       ingredients: [
         '1.5 kg beef chuck or bone-in lamb, cut into generous bite-sized cubes',
         '4 large russet potatoes, peeled and quartered',
@@ -279,12 +363,12 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
         'Lower heat to the lowest setting, cover tightly, and allow to simmer peacefully for 90 minutes.',
         'Add the quartered potatoes, carrots, and chickpeas. Simmer uncovered for another 35-40 minutes until potatoes are tender and broth has thickened into a velvety gravy.',
         'Rest for 15 minutes before serving so flavors marry. Shower with fresh chopped cilantro and serve alongside warm crusty sourdough.'
-      ],
-      secretTouch: 'Never rush the caramelizing of the onions. As they always told us while cooking: "Pray for each person who will sit at the table while stirring the pot; food prepared in prayer never fails to bring peace."'
+      ]
     },
     comments: [
       {
         id: 'c-4',
+        authorId: 'member-5',
         authorName: 'Joshua Christopher',
         authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
         authorEmail: 'joshua.c@hathbodhiya.community',
@@ -296,11 +380,11 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
 
   {
     id: 'recipe-2',
+    authorId: 'member-6',
     category: 'recipes',
     subCategory: 'warm_beverages',
     title: 'Midnight Cardamom & Jaggery Milk Tea',
-    subtitle: 'The hot brew that welcomed late-night study arrivals',
-    content: 'Brewed in the large battered stainless steel pot at 9:30 PM every Friday. Grads would arrive exhausted from long bus rides, drop their heavy backpacks by the door, and be handed a cup of this fragrant tea.',
+    content: '',
     images: [],
     author: {
       name: 'Kavitha Emmanuel',
@@ -310,10 +394,9 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-07-15',
     starsCount: 23,
-    starredBy: ['rajarajacroos2000@gmail.com'],
+    starredBy: ['member-1'],
+    commentsCount: 0,
     metadata: {
-      prepTime: '15 mins',
-      servings: '8 cups',
       ingredients: [
         '4 cups cold spring water',
         '4 cups fresh whole creamy milk',
@@ -329,8 +412,7 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
         'Pour in the cold milk and jaggery. Bring the mixture up to a gentle boil, watching carefully so it rises without spilling.',
         'Reduce heat to low, let it simmer for 3 minutes, then raise heat to foam up once more.',
         'Strain through a fine mesh strainer into ceramic mugs from a high angle to create a creamy froth on top.'
-      ],
-      secretTouch: 'The tiny pinch of salt cuts through milk fat and elevates the aroma of jaggery.'
+      ]
     },
     comments: [],
   },
@@ -338,10 +420,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
   // --- MEMORY ALBUMS ---
   {
     id: 'memory-1',
+    authorId: 'member-3',
     category: 'memories',
     subCategory: 'table_fellowship',
     title: 'The Great Table at Twilight',
-    subtitle: 'Friday fellowship gathering after exams season',
     content: 'This was taken on a cool November evening just after the final thesis submissions. 14 of us squeezed around the wooden dining table meant for eight. Nobody wanted to get up, even after three hours. The laughter echoed out into the garden.',
     images: ['/src/assets/images/fellowship_table_warmth_1793896593648.jpg'],
     author: {
@@ -352,10 +434,12 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-11-01',
     starsCount: 28,
-    starredBy: ['rajarajacroos2000@gmail.com', 'hannah.m@hathbodhiya.community'],
+    starredBy: ['member-1', 'member-4'],
+    commentsCount: 1,
     comments: [
       {
         id: 'c-5',
+        authorId: 'member-2',
         authorName: 'Priscilla David',
         authorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
         authorEmail: 'priscilla.d@hathbodhiya.community',
@@ -367,10 +451,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
 
   {
     id: 'memory-2',
+    authorId: 'member-1',
     category: 'memories',
     subCategory: 'quiet_moments',
     title: 'Early Morning Scripture & Warm Mugs by the Hearth',
-    subtitle: 'Quiet Saturday morning devotions before the household awakens',
     content: 'The open well-worn Bible on the low wooden coffee table with handwritten margin notes going back thirty years. Steam rising from ceramic mugs while the sun crept through the curtains. The stillness in this corner has sheltered so many troubled hearts.',
     images: ['/src/assets/images/fellowship_scripture_tea_1793896595044.jpg'],
     author: {
@@ -381,17 +465,18 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-09-24',
     starsCount: 25,
-    starredBy: ['samuel.eb@hathbodhiya.community'],
+    starredBy: ['member-3'],
+    commentsCount: 0,
     comments: [],
   },
 
   // --- THINGS WE DON'T WANT TO FORGET (WISDOM & PERSPECTIVES) ---
   {
     id: 'wisdom-1',
+    authorId: 'member-4',
     category: 'wisdom',
     subCategory: 'faith_perspective',
     title: 'God Does Not Audit Your Productivity Before Loving You',
-    subtitle: 'On resting in sonship rather than worldly performance',
     content: 'A golden counsel spoken quietly when several grads were feeling like failures after rejected job applications and academic setbacks: "You have been trained by modern universities to believe your dignity equals your measurable output. But the Cross cancelled the balance sheet. God was delighted in Jesus before He performed a single miracle or preached a single sermon. You are loved because you are His child, not because of your productivity."',
     images: [],
     author: {
@@ -402,7 +487,8 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-06-18',
     starsCount: 35,
-    starredBy: ['rajarajacroos2000@gmail.com', 'priscilla.d@hathbodhiya.community', 'joshua.c@hathbodhiya.community'],
+    starredBy: ['member-1', 'member-2', 'member-5'],
+    commentsCount: 1,
     metadata: {
       goldenQuote: 'The Cross cancelled the balance sheet. You are loved because you are His child, not because of your productivity.',
       lifePrinciple: 'Rest in Christ’s finished work before you attempt to build your career.',
@@ -410,6 +496,7 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     comments: [
       {
         id: 'c-6',
+        authorId: 'member-1',
         authorName: 'Rajaraja Croos',
         authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         authorEmail: 'rajarajacroos2000@gmail.com',
@@ -421,10 +508,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
 
   {
     id: 'wisdom-2',
+    authorId: 'member-2',
     category: 'wisdom',
     subCategory: 'hospitality',
     title: 'Hospitality is Creating Space to Disarm Defenses',
-    subtitle: 'The foundational principle of University of Hathbodhiya',
     content: '"When you welcome someone into your house, don\'t try to impress them with your home; impress them with Christ\'s gentleness. Give them food without demanding their story until they are ready. Give them shelter without calculating the cost. In doing so, you wash their feet without embarrassing them."',
     images: [],
     author: {
@@ -435,7 +522,8 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-05-19',
     starsCount: 27,
-    starredBy: ['rajarajacroos2000@gmail.com'],
+    starredBy: ['member-1'],
+    commentsCount: 0,
     metadata: {
       goldenQuote: 'Give them shelter without calculating the cost. In doing so, you wash their feet without embarrassing them.',
       lifePrinciple: 'Love without expectations is the truest reflection of Jesus.',
@@ -445,10 +533,10 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
 
   {
     id: 'wisdom-3',
+    authorId: 'member-3',
     category: 'wisdom',
     subCategory: 'golden_advice',
     title: 'Cook with Prayer, Never with Resentment',
-    subtitle: 'The kitchen rule passed down to every fellowship generation',
     content: '"When you are in the kitchen chopping onions and grating garlic for others, make it a prayer for every person who will taste it. If you ever feel tired or tempted to grumble that nobody is helping, pause and turn it into thanksgiving. Bitter cooks make bitter meals, but food made in prayer brings the peace of God into the soul."',
     images: [],
     author: {
@@ -459,7 +547,8 @@ As grads, our natural temptation will be to climb and hoard our time. But rememb
     },
     createdAt: '2024-04-10',
     starsCount: 30,
-    starredBy: ['kavitha.e@hathbodhiya.community'],
+    starredBy: ['member-6'],
+    commentsCount: 0,
     metadata: {
       goldenQuote: 'Bitter cooks make bitter meals, but food made in prayer brings the peace of God into the soul.',
       lifePrinciple: 'Turn service into prayer so your heart remains tender.',

@@ -11,6 +11,8 @@ import {
   updateDoc,
   where,
   writeBatch,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
@@ -140,7 +142,7 @@ export async function listApprovedMembers(): Promise<CommunityMember[]> {
   const snapshot = await getDocs(
     query(collection(db, 'profiles'), where('status', '==', 'approved'), limit(200))
   );
-  return snapshot.docs.map((item) => mapProfile(item.id, item.data() as ProfileDoc));
+  return snapshot.docs.map((item: QueryDocumentSnapshot<DocumentData>) => mapProfile(item.id, item.data() as ProfileDoc));
 }
 
 export async function listPendingAccounts(): Promise<Array<AccountRecord & { name: string; avatar: string }>> {

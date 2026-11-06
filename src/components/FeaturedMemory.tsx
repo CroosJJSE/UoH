@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArchiveItem } from '../types';
-import { Star, MessageSquare, ArrowUpRight } from 'lucide-react';
+import { Heart, MessageSquare, ArrowUpRight } from 'lucide-react';
 
 interface FeaturedMemoryProps {
   item: ArchiveItem;
@@ -42,11 +42,7 @@ export const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({
             {item.title}
           </h2>
 
-          {item.subtitle && (
-            <p className="font-editorial text-lg text-[#E8B45A]/90 italic">
-              {item.subtitle}
-            </p>
-          )}
+
 
           <p className="text-sm sm:text-base text-[#A8A196] leading-relaxed line-clamp-4">
             {item.content}
@@ -70,14 +66,14 @@ export const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onStar(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
+                aria-label="Cherish offering"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
                   isStarred
                     ? 'bg-[#E8B45A]/15 border-[#E8B45A] text-[#E8B45A]'
                     : 'bg-[#22201D] border-[#2E2A25] text-[#A8A196] hover:text-[#F5EFE3] hover:border-[#423D35]'
                 }`}
               >
-                <Star className={`w-3.5 h-3.5 ${isStarred ? 'fill-[#E8B45A]' : ''}`} />
-                <span className="tabular-nums">{item.starsCount}</span>
+                <Heart className={`w-3.5 h-3.5 ${isStarred ? 'fill-[#E8B45A]' : ''}`} />
               </button>
 
               <button

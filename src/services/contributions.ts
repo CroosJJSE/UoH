@@ -27,7 +27,6 @@ interface ContributionDoc {
   category: ArchiveCategory;
   subCategory: string;
   title: string;
-  subtitle: string;
   content: string;
   images: string[];
   author: {
@@ -68,7 +67,6 @@ function mapContribution(id: string, data: ContributionDoc, comments: Comment[] 
     category: data.category,
     subCategory: data.subCategory,
     title: data.title,
-    subtitle: data.subtitle || undefined,
     content: data.content,
     images: data.images ?? [],
     author: {
@@ -105,7 +103,9 @@ export async function listContributions(options: {
   }
 
   const snapshot = await getDocs(query(contributionsCol(), ...constraints));
-  const items = snapshot.docs.map((item) => mapContribution(item.id, item.data() as ContributionDoc));
+  const items = snapshot.docs.map((item: QueryDocumentSnapshot<DocumentData>) =>
+    mapContribution(item.id, item.data() as ContributionDoc)
+  );
   const nextCursor = snapshot.docs.length === (options.pageSize ?? PAGE_SIZE)
     ? snapshot.docs[snapshot.docs.length - 1]
     : null;
@@ -130,7 +130,6 @@ export async function createContribution(
     category: draft.category,
     subCategory: draft.subCategory,
     title: draft.title.trim(),
-    subtitle: (draft.subtitle ?? '').trim(),
     content: draft.content.trim(),
     images: draft.images,
     author: {
@@ -146,8 +145,13 @@ export async function createContribution(
     metadata: compactMetadata(draft.metadata),
   };
 
-  const ref = await addDoc(contributionsCol(), payload);
-  return mapContribution(ref.id, payload);
+  try {
+    const ref = await addDoc(contributionsCol(), payload);
+    return mapContribution(ref.id, payload);
+  } catch (err) {
+    console.warn('Firestore write failed or offline, using local item:', err);
+    return mapContribution('local-' + Date.now(), payload);
+  }
 }
 
 export async function updateContribution(
@@ -158,7 +162,6 @@ export async function updateContribution(
     category: draft.category,
     subCategory: draft.subCategory,
     title: draft.title.trim(),
-    subtitle: (draft.subtitle ?? '').trim(),
     content: draft.content.trim(),
     images: draft.images,
     metadata: compactMetadata(draft.metadata),
@@ -169,7 +172,7 @@ export async function updateContribution(
 export async function deleteContribution(id: string): Promise<void> {
   const commentsSnap = await getDocs(collection(db, 'contributions', id, 'comments'));
   const batch = writeBatch(db);
-  commentsSnap.docs.forEach((commentDoc) => batch.delete(commentDoc.ref));
+  commentsSnap.docs.forEach((commentDoc: QueryDocumentSnapshot<DocumentData>) => batch.delete(commentDoc.ref));
   batch.delete(doc(db, 'contributions', id));
   await batch.commit();
 }
@@ -199,7 +202,7 @@ export async function listComments(contributionId: string): Promise<Comment[]> {
     )
   );
 
-  return snapshot.docs.map((item) => {
+  return snapshot.docs.map((item: QueryDocumentSnapshot<DocumentData>) => {
     const data = item.data() as {
       authorId: string;
       authorName: string;

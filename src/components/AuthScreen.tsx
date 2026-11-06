@@ -1,10 +1,15 @@
 import { FormEvent, useState } from 'react';
 import { toUserMessage } from '../lib/errors';
 import { registerWithEmail, signInWithEmail, signInWithGoogle } from '../services/auth';
+import { Sparkles } from 'lucide-react';
 
 type Mode = 'signin' | 'register';
 
-export function AuthScreen() {
+interface AuthScreenProps {
+  onEnterDemo?: () => void;
+}
+
+export function AuthScreen({ onEnterDemo }: AuthScreenProps) {
   const [mode, setMode] = useState<Mode>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -56,7 +61,7 @@ export function AuthScreen() {
         <div className="absolute inset-0 bg-black/45" />
       </div>
 
-      <div className="relative z-10 w-full min-w-0 px-5 pt-16 pb-10 flex flex-col justify-end min-h-dvh">
+      <div className="relative z-10 w-full min-w-0 px-5 pt-12 pb-10 flex flex-col justify-end min-h-dvh">
         <div className="text-center mb-6">
           <span className="text-xs font-semibold tracking-widest uppercase text-[#E8B45A] mb-2 block">
             Open-Source Community Sanctuary
@@ -64,12 +69,29 @@ export function AuthScreen() {
           <h1 className="font-editorial italic text-[28px] leading-9 text-[#F5EFE3] font-normal tracking-tight">
             University of Hathbodhiya
           </h1>
-          <p className="text-sm text-[#A8A196] mt-3 leading-relaxed">
-            Sign in to request fellowship access. New members wait for a steward to welcome them before the archive opens.
+          <p className="text-sm text-[#A8A196] mt-2 leading-relaxed">
+            Preserving recipes, art, guiding principles, and fellowship memories.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-[#181714]/80 backdrop-blur-md border border-[#2E2A25] p-5 space-y-5">
+        <div className="rounded-2xl bg-[#181714]/85 backdrop-blur-md border border-[#2E2A25] p-5 space-y-4 shadow-xl">
+          {/* Quick Dev/Demo Access Button for Local Dev */}
+          {onEnterDemo && (
+            <div className="p-3 rounded-xl bg-[#22201D] border border-[#E8B45A]/40 text-center">
+              <button
+                type="button"
+                onClick={onEnterDemo}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] font-semibold text-xs tracking-wide transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-[#111210]" />
+                <span>Enter as Fellowship Steward (Local Dev Mode)</span>
+              </button>
+              <p className="text-[11px] text-[#A8A196] mt-1.5 leading-tight">
+                Instantly explore the app, view the wall, and create offerings.
+              </p>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleGoogle}
@@ -128,7 +150,7 @@ export function AuthScreen() {
           <button
             type="button"
             onClick={() => setMode(mode === 'signin' ? 'register' : 'signin')}
-            className="w-full text-xs text-[#A8A196] hover:text-[#E8B45A] cursor-pointer"
+            className="w-full text-xs text-[#A8A196] hover:text-[#E8B45A] cursor-pointer text-center block pt-1"
           >
             {mode === 'signin' ? 'Need an account? Register' : 'Already registered? Sign in'}
           </button>
