@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CommunityMember } from '../types';
-import { X, Star, FileText, Upload } from 'lucide-react';
+import { X, FileText, Upload } from 'lucide-react';
 import { signOut } from '../services/auth';
 import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
 import { toUserMessage } from '../lib/errors';
@@ -181,12 +181,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
           <div className="flex items-center gap-6 p-3 rounded-lg bg-[#111210] border border-[#2E2A25] text-xs text-[#A8A196]">
             <span className="flex items-center gap-1.5 text-[#E8B45A]">
-              <Star className="w-4 h-4 fill-[#E8B45A]" />
-              <strong>{currentUser.starsEarned}</strong> stars earned
-            </span>
-            <span className="flex items-center gap-1.5 text-[#F5EFE3]">
-              <FileText className="w-4 h-4 text-[#A8A196]" />
-              <strong>{currentUser.contributionsCount}</strong> contributions
+              <FileText className="w-4 h-4 text-[#E8B45A]" />
+              <strong>{currentUser.contributionsCount}</strong> posts documented
             </span>
             <span className="text-[#6E675D]">{currentUser.role.replace('_', ' ')}</span>
           </div>

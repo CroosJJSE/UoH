@@ -42,7 +42,16 @@ function withDerivedStats(members: CommunityMember[], items: ArchiveItem[]): Com
 }
 
 export default function App() {
-  const { firebaseUser, account, profile, initializing, error: authError, refreshProfile } = useAuth();
+  const {
+    firebaseUser,
+    account,
+    profile,
+    initializing,
+    error: authError,
+    refreshProfile,
+    enterDemoMode,
+    isDemoMode,
+  } = useAuth();
   const [items, setItems] = useState<ArchiveItem[]>(INITIAL_ARCHIVE_ITEMS);
   const [members, setMembers] = useState<CommunityMember[]>(INITIAL_MEMBERS);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -85,10 +94,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (account?.status === 'approved' && profile) {
+    if ((account?.status === 'approved' || isDemoMode) && profile) {
       void loadPage(true);
     }
-  }, [account?.status, profile?.id]);
+  }, [account?.status, profile?.id, isDemoMode]);
 
   const currentUser = useMemo(() => {
     if (!profile) return null;
@@ -102,30 +111,32 @@ export default function App() {
     return <div className="phone-shell" />;
   }
 
-  if (!firebaseUser) {
-    return <AuthScreen />;
+  if (!firebaseUser && !isDemoMode) {
+    return <AuthScreen onEnterDemo={enterDemoMode} />;
   }
 
-  if (!firebaseUser.emailVerified) {
+  if (firebaseUser && !firebaseUser.emailVerified && !isDemoMode) {
     return (
       <AccessGate
         title="Confirm your email"
         body="We sent a verification link. Confirm it, then refresh this page so a steward can review your fellowship request."
         firebaseUser={firebaseUser}
+        onEnterDemo={enterDemoMode}
       />
     );
   }
 
-  if (authError) {
-    return <AccessGate title="Unable to load your profile" body={authError} />;
+  if (authError && !isDemoMode) {
+    return <AccessGate title="Unable to load your profile" body={authError} onEnterDemo={enterDemoMode} />;
   }
 
-  if (account?.status === 'pending') {
+  if (account?.status === 'pending' && !isDemoMode) {
     return (
       <AccessGate
         title="Waiting for a steward"
         body="Your account is registered. A steward will approve you before the archive opens. This keeps the fellowship intimate and known."
         status="pending"
+        onEnterDemo={enterDemoMode}
       />
     );
   }
@@ -239,8 +250,12 @@ export default function App() {
       <Header
         currentCategory={currentCategory}
         onSelectCategory={setCurrentCategory}
-        currentUser={currentUser}
+        currentUser={currentUser || INITIAL_MEMBERS[0]}
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenAddModal={() => {
+          setEditingItem(null);
+          setIsAddModalOpen(true);
+        }}
       />
 
       <main className="w-full min-h-dvh pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] px-5 overflow-x-hidden">
@@ -253,7 +268,7 @@ export default function App() {
         {currentCategory === 'all' && (
           <HomeView
             items={items}
-            currentUser={currentUser}
+            currentUser={currentUser || INITIAL_MEMBERS[0]}
             counts={categoryCounts}
             onSelectCategory={setCurrentCategory}
             onSelectItem={(item) => void handleSelectItem(item)}
@@ -269,7 +284,7 @@ export default function App() {
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
             onStar={(id) => void handleToggleStar(id)}
-            currentUserId={currentUser.id}
+            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -282,7 +297,7 @@ export default function App() {
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
             onStar={(id) => void handleToggleStar(id)}
-            currentUserId={currentUser.id}
+            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -295,7 +310,7 @@ export default function App() {
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
             onStar={(id) => void handleToggleStar(id)}
-            currentUserId={currentUser.id}
+            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -308,7 +323,7 @@ export default function App() {
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
             onStar={(id) => void handleToggleStar(id)}
-            currentUserId={currentUser.id}
+            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -319,11 +334,15 @@ export default function App() {
         {currentCategory === 'wall' && (
           <CommunityWallView
             members={visibleMembers}
-            currentUser={currentUser}
+            currentUser={currentUser || INITIAL_MEMBERS[0]}
             items={items}
             onOpenProfile={() => setIsProfileModalOpen(true)}
             onExport={() => void exportArchiveJson(items, visibleMembers)}
             onSelectItem={(item) => void handleSelectItem(item)}
+            onOpenAddModal={() => {
+              setEditingItem(null);
+              setIsAddModalOpen(true);
+            }}
           />
         )}
 
@@ -341,7 +360,14 @@ export default function App() {
         )}
       </main>
 
-      <BottomNav currentCategory={currentCategory} onSelectCategory={setCurrentCategory} />
+      <BottomNav
+        currentCategory={currentCategory}
+        onSelectCategory={setCurrentCategory}
+        onOpenAddModal={() => {
+          setEditingItem(null);
+          setIsAddModalOpen(true);
+        }}
+      />
 
       <AddArchiveModal
         isOpen={isAddModalOpen}
@@ -350,7 +376,7 @@ export default function App() {
           setEditingItem(null);
         }}
         onSave={handleSaveItem}
-        currentUser={currentUser}
+        currentUser={currentUser || INITIAL_MEMBERS[0]}
         editingItem={editingItem}
       />
 
@@ -365,13 +391,13 @@ export default function App() {
           setIsAddModalOpen(true);
         }}
         onDelete={(item) => void handleDelete(item)}
-        currentUser={currentUser}
+        currentUser={currentUser || INITIAL_MEMBERS[0]}
       />
 
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        currentUser={currentUser}
+        currentUser={currentUser || INITIAL_MEMBERS[0]}
         onUpdateCurrentUser={handleUpdateUser}
       />
     </div>

@@ -2,7 +2,7 @@ import { useMemo, useState, type FC } from 'react';
 import { ArchiveItem, CommunityMember } from '../types';
 import { AdminPanel } from './AdminPanel';
 import { isSteward } from '../services/users';
-import { ArrowLeft, BookOpen, Download, Sparkles, Star, User, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, Plus, Sparkles, User, X } from 'lucide-react';
 
 interface CommunityWallViewProps {
   members: CommunityMember[];
@@ -11,6 +11,7 @@ interface CommunityWallViewProps {
   onOpenProfile: () => void;
   onExport: () => void;
   onSelectItem: (item: ArchiveItem) => void;
+  onOpenAddModal: () => void;
 }
 
 type SkyFilter = 'all' | 'active' | 'new';
@@ -20,7 +21,7 @@ interface ConstellationSlot {
   left?: string;
   right?: string;
   size: number;
-  badge?: 'sparkle' | 'star';
+  badge?: 'sparkle' | 'book';
   isTopRank?: boolean;
   category: 'active' | 'new';
   roleDefault: string;
@@ -40,7 +41,7 @@ const CONSTELLATION_SLOTS: ConstellationSlot[] = [
     top: '16%',
     left: '18%',
     size: 78,
-    badge: 'star',
+    badge: 'book',
     category: 'active',
     roleDefault: 'Chronicler',
   },
@@ -48,7 +49,7 @@ const CONSTELLATION_SLOTS: ConstellationSlot[] = [
     top: '18%',
     left: '82%',
     size: 76,
-    badge: 'star',
+    badge: 'book',
     category: 'active',
     roleDefault: 'Keeper of Bread',
   },
@@ -124,16 +125,17 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
   onOpenProfile,
   onExport,
   onSelectItem,
+  onOpenAddModal,
 }) => {
   const [filter, setFilter] = useState<SkyFilter>('all');
   const [historyMember, setHistoryMember] = useState<CommunityMember | null>(null);
 
-  // Sort members by star ranking descending
+  // Sort members by post count descending
   const sortedMembers = useMemo(() => {
-    return [...members].sort((a, b) => (b.starsEarned || 0) - (a.starsEarned || 0));
+    return [...members].sort((a, b) => (b.contributionsCount || 0) - (a.contributionsCount || 0));
   }, [members]);
 
-  // Default inspector to top hearthkeeper
+  // Default inspector to top contributor
   const [inspectedMember, setInspectedMember] = useState<CommunityMember | null>(() => {
     return sortedMembers.length > 0 ? sortedMembers[0] : null;
   });
@@ -198,8 +200,8 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
               <p className="text-[11px] text-[#A8A196] truncate">Edit my profile & fellowship note</p>
             </div>
           </button>
-          <span className="text-[11px] text-[#E8B45A] font-medium shrink-0">
-            {currentUser.starsEarned} ⭐
+          <span className="text-[11px] text-[#E8B45A] font-semibold shrink-0">
+            {currentUser.contributionsCount} {currentUser.contributionsCount === 1 ? 'post' : 'posts'}
           </span>
         </div>
       </div>
@@ -303,7 +305,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
                 className={`relative rounded-full transition-transform duration-300 group-hover:scale-105 ${
                   slot.isTopRank
                     ? 'p-[3px] bg-gradient-to-tr from-[#E8B45A] via-[#ffd187] to-[#E8B45A]/40 shadow-[0_0_24px_rgba(232,180,90,0.35)]'
-                    : slot.badge === 'star'
+                    : slot.badge === 'book'
                     ? 'p-[2.5px] bg-gradient-to-b from-[#E8B45A] to-transparent shadow-[0_0_18px_rgba(232,180,90,0.25)]'
                     : slot.category === 'new'
                     ? 'p-[1.5px] bg-[#E8B45A]/35 shadow-sm'
@@ -329,9 +331,9 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
                     <Sparkles className="w-3.5 h-3.5 fill-[#E8B45A]" />
                   </span>
                 )}
-                {slot.badge === 'star' && (
-                  <span className="absolute -bottom-1 -right-0.5 bg-[#22201D] text-[#E8B45A] rounded-full p-0.5 shadow-md">
-                    <Star className="w-3 h-3 fill-[#E8B45A]" />
+                {slot.badge === 'book' && (
+                  <span className="absolute -bottom-1 -right-0.5 bg-[#22201D] text-[#E8B45A] rounded-full p-1 shadow-md">
+                    <BookOpen className="w-3 h-3 text-[#E8B45A]" />
                   </span>
                 )}
               </div>
@@ -345,7 +347,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
                 {member.name.split(' ')[0]}
               </span>
               <span className="text-[10px] text-[#E8B45A] font-semibold">
-                {member.starsEarned} ⭐
+                {member.contributionsCount} {member.contributionsCount === 1 ? 'post' : 'posts'}
               </span>
             </div>
           );
@@ -354,7 +356,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
         {/* Warm Floating Hint */}
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#22201D]/80 backdrop-blur-md shadow-sm pointer-events-none border border-[#2E2A25]/40">
           <Sparkles className="w-3 h-3 text-[#E8B45A]" />
-          <span className="text-[10px] text-[#A8A196]">Tap any star to witness their offering</span>
+          <span className="text-[10px] text-[#A8A196]">Tap any soul to witness their offerings</span>
         </div>
       </div>
 
@@ -384,7 +386,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
                 </h4>
                 <div className="flex items-center gap-2 mt-0.5 text-[11px]">
                   <span className="text-[#E8B45A] font-semibold">
-                    {inspectedMember.starsEarned} ⭐
+                    {inspectedMember.contributionsCount} {inspectedMember.contributionsCount === 1 ? 'post' : 'posts'}
                   </span>
                   <span className="text-[#6E675D]">•</span>
                   <span className="text-[#A8A196] truncate">
@@ -423,6 +425,24 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Prominent Contribution Action: Offer to the Table */}
+      <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-[#22201D] to-[#181714] border border-[#2E2A25] shadow-sm">
+        <div className="min-w-0 pr-3">
+          <h4 className="font-editorial text-[18px] text-[#F5EFE3] leading-snug">Offer to the Table</h4>
+          <p className="text-[12px] text-[#A8A196] mt-0.5">
+            Share an artwork, recipe, song, photo, or memory.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenAddModal}
+          className="px-4 py-2 rounded-xl bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] font-semibold text-[13px] flex items-center gap-1.5 shrink-0 shadow-md active:scale-95 transition-all cursor-pointer"
+        >
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>Create Post</span>
+        </button>
+      </div>
 
       {/* Offerings History Drawer / Modal */}
       {historyMember && (
@@ -532,10 +552,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
 
               <div className="text-right shrink-0">
                 <span className="text-[12px] text-[#E8B45A] font-semibold block">
-                  {member.starsEarned} ⭐
-                </span>
-                <span className="text-[10px] text-[#6E675D]">
-                  {member.contributionsCount} posts
+                  {member.contributionsCount} {member.contributionsCount === 1 ? 'post' : 'posts'}
                 </span>
               </div>
             </div>

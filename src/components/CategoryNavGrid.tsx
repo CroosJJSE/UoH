@@ -57,8 +57,8 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
     {
       id: 'wall' as CategoryType,
       title: 'Community Wall',
-      subtitle: 'Fellowship Members & Stars',
-      description: 'Our graduates wall with Google profile avatars, stars earned for caring contributions, and personal letters of gratitude.',
+      subtitle: 'Fellowship Members & Offerings',
+      description: 'Our graduates wall with Google profile avatars, posts shared across seasons, and personal letters of gratitude.',
       icon: Award,
       count: counts.wall,
       countLabel: 'active graduates',

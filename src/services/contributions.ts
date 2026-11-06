@@ -145,8 +145,13 @@ export async function createContribution(
     metadata: compactMetadata(draft.metadata),
   };
 
-  const ref = await addDoc(contributionsCol(), payload);
-  return mapContribution(ref.id, payload);
+  try {
+    const ref = await addDoc(contributionsCol(), payload);
+    return mapContribution(ref.id, payload);
+  } catch (err) {
+    console.warn('Firestore write failed or offline, using local item:', err);
+    return mapContribution('local-' + Date.now(), payload);
+  }
 }
 
 export async function updateContribution(

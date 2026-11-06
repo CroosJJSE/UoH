@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArchiveItem, CommunityMember } from '../types';
-import { X, Star, MessageSquare, Music2, Check, Copy } from 'lucide-react';
+import { X, Heart, MessageSquare, Music2, Check, Copy } from 'lucide-react';
 
 interface ItemDetailModalProps {
   item: ArchiveItem | null;
@@ -224,12 +224,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </div>
         )}
 
-        {/* Stars Action Row */}
+        {/* Cherish Offering Action Row */}
         <div className="flex items-center justify-between p-4 rounded-xl bg-[#22201D] border border-[#2E2A25] mb-8">
           <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 fill-[#E8B45A] text-[#E8B45A]" />
-            <span className="text-sm font-semibold text-[#F5EFE3] tabular-nums">
-              {item.starsCount} community stars
+            <Heart className="w-5 h-5 fill-[#E8B45A] text-[#E8B45A]" />
+            <span className="text-sm font-semibold text-[#F5EFE3]">
+              Community Offering
             </span>
           </div>
 
@@ -241,8 +241,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 : 'bg-[#181714] text-[#E8B45A] border border-[#E8B45A] hover:bg-[#E8B45A] hover:text-[#111210]'
             }`}
           >
-            <Star className={`w-4 h-4 ${isStarred ? 'fill-[#111210]' : ''}`} />
-            <span>{isStarred ? 'Starred' : 'Give a Star'}</span>
+            <Heart className={`w-4 h-4 ${isStarred ? 'fill-[#111210]' : ''}`} />
+            <span>{isStarred ? 'Cherished' : 'Cherish Offering'}</span>
           </button>
         </div>
 
