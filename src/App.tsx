@@ -27,6 +27,7 @@ import {
   toggleStar,
   updateContribution,
 } from './services/contributions';
+import { INITIAL_ARCHIVE_ITEMS, INITIAL_MEMBERS } from './data/initialData';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 function withDerivedStats(members: CommunityMember[], items: ArchiveItem[]): CommunityMember[] {
@@ -34,16 +35,16 @@ function withDerivedStats(members: CommunityMember[], items: ArchiveItem[]): Com
     const owned = items.filter((item) => item.authorId === member.id);
     return {
       ...member,
-      contributionsCount: owned.length,
-      starsEarned: owned.reduce((sum, item) => sum + item.starsCount, 0),
+      contributionsCount: Math.max(member.contributionsCount || 0, owned.length),
+      starsEarned: Math.max(member.starsEarned || 0, owned.reduce((sum, item) => sum + item.starsCount, 0)),
     };
   });
 }
 
 export default function App() {
   const { firebaseUser, account, profile, initializing, error: authError, refreshProfile } = useAuth();
-  const [items, setItems] = useState<ArchiveItem[]>([]);
-  const [members, setMembers] = useState<CommunityMember[]>([]);
+  const [items, setItems] = useState<ArchiveItem[]>(INITIAL_ARCHIVE_ITEMS);
+  const [members, setMembers] = useState<CommunityMember[]>(INITIAL_MEMBERS);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const cursorRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [loadingFeed, setLoadingFeed] = useState(false);
@@ -64,11 +65,16 @@ export default function App() {
         }),
         reset ? listApprovedMembers() : Promise.resolve(null),
       ]);
-      setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
+      setItems((prev) => {
+        if (reset) {
+          return page.items.length > 0 ? page.items : INITIAL_ARCHIVE_ITEMS;
+        }
+        return [...prev, ...page.items];
+      });
       cursorRef.current = page.cursor;
       setCursor(page.cursor);
       if (approvedMembers) {
-        setMembers(approvedMembers);
+        setMembers(approvedMembers.length > 0 ? approvedMembers : INITIAL_MEMBERS);
       }
       setFeedError(null);
     } catch (err) {
