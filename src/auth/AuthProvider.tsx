@@ -6,7 +6,7 @@ import { ensureUserDocuments } from '../services/users';
 import { AccountRecord, CommunityMember } from '../types';
 import { INITIAL_MEMBERS } from '../data/initialData';
 
-const DEMO_KEY = 'hathbodhiya_dev_mode';
+const DEMO_KEY = 'pass';
 
 interface AuthContextValue {
   firebaseUser: User | null;

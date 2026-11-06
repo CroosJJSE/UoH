@@ -1,6 +1,6 @@
 import { ArchiveItem, CategoryType, CommunityMember } from '../types';
 import { NotebookPen, Plus } from 'lucide-react';
-
+import React, { useEffect, useRef } from 'react';
 interface HomeViewProps {
   items: ArchiveItem[];
   currentUser: CommunityMember;
@@ -48,14 +48,41 @@ export function HomeView({
   const quoteItem = items.find((item) => item.category === 'wisdom' && item.metadata?.goldenQuote);
   const recent = items.slice(0, 6);
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.5;
+    }
+  }, []);
   return (
     <div className="flex flex-col w-full gap-8">
-      <section className="w-full overflow-hidden rounded-xl bg-[#181714] shadow-md">
-        <img
-          src="/bookshelf.jpeg"
-          alt="The Hathbodhiya bookshelves"
-          className="w-full aspect-16/10 object-cover object-center"
-        />
+      <section className="relative w-full overflow-hidden rounded-xl bg-[#181714] shadow-md">
+          {/* Background video */}
+          <video
+            src="/door_locking.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="w-full aspect-[16/10] object-cover object-center"
+            ref={videoRef}
+          />
+
+          {/* Dark gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/100 via-black/50 to-transparent" />
+
+          {/* Quote */}
+          <div className="absolute bottom-0 left-0 w-full p-5 sm:p-7">
+            <p className="font-editorial text-xl sm:text-2xl md:text-3xl text-[#F5EFE3] leading-snug">
+              Door locks automatically.
+              <br />
+              <span className="text-[#E8B45A] italic">
+                Hearts open automatically.
+              </span>
+            </p>
+          </div>
       </section>
 
       <section className="flex flex-col gap-1">

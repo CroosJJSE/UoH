@@ -64,33 +64,16 @@ export function AuthScreen({ onEnterDemo }: AuthScreenProps) {
       <div className="relative z-10 w-full min-w-0 px-5 pt-12 pb-10 flex flex-col justify-end min-h-dvh">
         <div className="text-center mb-6">
           <span className="text-xs font-semibold tracking-widest uppercase text-[#E8B45A] mb-2 block">
-            Open-Source Community Sanctuary
-          </span>
+Who is suffering by whom ? Us or them ?          </span>
           <h1 className="font-editorial italic text-[28px] leading-9 text-[#F5EFE3] font-normal tracking-tight">
             University of Hathbodhiya
           </h1>
           <p className="text-sm text-[#A8A196] mt-2 leading-relaxed">
-            Preserving recipes, art, guiding principles, and fellowship memories.
-          </p>
+I am sure you will forget your email password, so lets go with Gmail Login          </p>
         </div>
 
         <div className="rounded-2xl bg-[#181714]/85 backdrop-blur-md border border-[#2E2A25] p-5 space-y-4 shadow-xl">
-          {/* Quick Dev/Demo Access Button for Local Dev */}
-          {onEnterDemo && (
-            <div className="p-3 rounded-xl bg-[#22201D] border border-[#E8B45A]/40 text-center">
-              <button
-                type="button"
-                onClick={onEnterDemo}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] font-semibold text-xs tracking-wide transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 fill-[#111210]" />
-                <span>Enter as Fellowship Steward (Local Dev Mode)</span>
-              </button>
-              <p className="text-[11px] text-[#A8A196] mt-1.5 leading-tight">
-                Instantly explore the app, view the wall, and create offerings.
-              </p>
-            </div>
-          )}
+
 
           <button
             type="button"
@@ -99,60 +82,6 @@ export function AuthScreen({ onEnterDemo }: AuthScreenProps) {
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#22201D]/90 border border-[#2E2A25] hover:border-[#E8B45A]/50 text-sm text-[#F5EFE3] transition-colors cursor-pointer disabled:opacity-60"
           >
             Continue with Google
-          </button>
-
-          <div className="flex items-center gap-3 text-[11px] text-[#6E675D]">
-            <div className="flex-1 h-px bg-[#2E2A25]" />
-            <span>or email</span>
-            <div className="flex-1 h-px bg-[#2E2A25]" />
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {mode === 'register' && (
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Full name"
-                className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-              />
-            )}
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Email"
-              className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-            />
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-            />
-
-            {error && <p className="text-xs text-[#ffb4ab]">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] transition-colors cursor-pointer disabled:opacity-60"
-            >
-              {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
-            </button>
-          </form>
-
-          <button
-            type="button"
-            onClick={() => setMode(mode === 'signin' ? 'register' : 'signin')}
-            className="w-full text-xs text-[#A8A196] hover:text-[#E8B45A] cursor-pointer text-center block pt-1"
-          >
-            {mode === 'signin' ? 'Need an account? Register' : 'Already registered? Sign in'}
           </button>
         </div>
       </div>
