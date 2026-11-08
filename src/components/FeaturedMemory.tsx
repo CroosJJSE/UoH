@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArchiveItem } from '../types';
 import { Heart, MessageSquare, ArrowUpRight } from 'lucide-react';
+import { ArchiveMedia } from './ArchiveMedia';
 
 interface FeaturedMemoryProps {
   item: ArchiveItem;
@@ -102,10 +103,9 @@ export const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({
             className="lg:col-span-5 relative group cursor-pointer overflow-hidden rounded-xl border border-[#2E2A25] shadow-lg"
           >
             <div className="aspect-4/3 w-full overflow-hidden bg-[#22201D]">
-              <img
+              <ArchiveMedia
                 src={item.images[0]}
                 alt={item.title}
-                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
               />
             </div>

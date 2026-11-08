@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ArchiveItem, CommunityMember, recipeDescription } from '../types';
 import { X, Music2, Check, Copy } from 'lucide-react';
+import { ArchiveMedia } from './ArchiveMedia';
+import { isVideoUrl } from '../lib/media';
 
 interface ItemDetailModalProps {
   item: ArchiveItem | null;
@@ -79,11 +81,15 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         {/* Media / Image Display */}
         {item.images && item.images.length > 0 && (
           <div className="mb-6 rounded-xl overflow-hidden border border-[#2E2A25] bg-[#111210]">
-            <img
+            <ArchiveMedia
               src={item.images[0]}
               alt={item.title}
-              referrerPolicy="no-referrer"
-              className="w-full max-h-[500px] object-cover"
+              mode="player"
+              className={
+                isVideoUrl(item.images[0])
+                  ? 'w-full max-h-[500px] object-contain bg-[#111210]'
+                  : 'w-full max-h-[500px] object-cover'
+              }
             />
             {item.metadata?.medium && (
               <p className="p-3 text-xs text-[#A8A196] italic bg-[#111210] border-t border-[#2E2A25]">

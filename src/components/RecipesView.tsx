@@ -1,17 +1,16 @@
 import type { FC } from 'react';
 import { ArchiveItem, recipeDescription } from '../types';
-import { Plus, UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed } from 'lucide-react';
+import { ArchiveMedia } from './ArchiveMedia';
 
 interface RecipesViewProps {
   items: ArchiveItem[];
   onSelect: (item: ArchiveItem) => void;
-  onOpenAddModal: () => void;
 }
 
 export const RecipesView: FC<RecipesViewProps> = ({
   items,
   onSelect,
-  onOpenAddModal,
 }) => {
   const recipeItems = items.filter((i) => i.category === 'recipes');
 
@@ -36,12 +35,7 @@ export const RecipesView: FC<RecipesViewProps> = ({
               <div>
                 <div className="relative w-full aspect-4/3 bg-[#181714] overflow-hidden">
                   {item.images[0] ? (
-                    <img
-                      src={item.images[0]}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
+                    <ArchiveMedia src={item.images[0]} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-[#6E675D] gap-1 px-2 text-center">
                       <UtensilsCrossed className="w-5 h-5 text-[#E8B45A]/50" />
@@ -70,15 +64,6 @@ export const RecipesView: FC<RecipesViewProps> = ({
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={onOpenAddModal}
-        className="mt-6 w-full py-3 rounded-xl bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] text-[14px] font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-      >
-        <Plus className="w-4 h-4" />
-        Add Recipe
-      </button>
     </div>
   );
 };

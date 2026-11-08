@@ -1,5 +1,6 @@
 import { useState, type FC } from 'react';
 import { ArchiveItem } from '../types';
+import { ArchiveMedia } from './ArchiveMedia';
 
 interface MuseumViewProps {
   items: ArchiveItem[];
@@ -13,7 +14,6 @@ export const MuseumView: FC<MuseumViewProps> = ({
   const [subFilter, setSubFilter] = useState<'all' | 'art' | 'articles' | 'songs'>('all');
   const museumItems = items.filter((item) => item.category === 'museum');
   const filteredItems = museumItems.filter((item) => subFilter === 'all' || item.subCategory === subFilter);
-  const featured = filteredItems.find((item) => item.images.length > 0) ?? filteredItems[0];
 
   return (
     <div className="flex flex-col w-full">
@@ -28,41 +28,6 @@ export const MuseumView: FC<MuseumViewProps> = ({
           A collection of beautiful things made and shared among us.
         </p>
       </section>
-
-      {featured && (
-        <button
-          type="button"
-          onClick={() => onSelect(featured)}
-          className="bg-[#22201D] rounded-xl p-3 shadow-xl flex flex-col text-left mb-4 overflow-hidden"
-        >
-          {featured.images[0] && (
-            <div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-[#0d0e0d]">
-              <img
-                alt={featured.title}
-                src={featured.images[0]}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          <div className="pt-4 px-1 pb-1">
-            <span className="text-[11px] text-[#6E675D] uppercase tracking-wider">
-              {featured.subCategory?.replace('_', ' ') || 'Archive'}
-            </span>
-            <h2 className="font-editorial italic text-[26px] leading-8 text-[#F5EFE3] mt-0.5">{featured.title}</h2>
-            <p className="text-[13px] text-[#A8A196] italic mt-2 bg-[#181714]/60 p-3 rounded-lg line-clamp-3">
-              {featured.content}
-            </p>
-            <div className="flex items-center gap-2.5 pt-4">
-              <img src={featured.author.avatar} alt="" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
-              <div className="min-w-0">
-                <p className="text-[14px] font-semibold text-[#F5EFE3] truncate">{featured.author.name}</p>
-                <p className="text-[11px] text-[#6E675D]">{featured.createdAt}</p>
-              </div>
-            </div>
-          </div>
-        </button>
-      )}
 
       <div className="flex flex-wrap gap-2 mb-4">
         {([
@@ -94,7 +59,7 @@ export const MuseumView: FC<MuseumViewProps> = ({
           >
             {item.images[0] && (
               <div className="aspect-4/3 w-full overflow-hidden bg-[#181714]">
-                <img src={item.images[0]} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                <ArchiveMedia src={item.images[0]} alt="" className="w-full h-full object-cover" />
               </div>
             )}
             <div className="p-4">

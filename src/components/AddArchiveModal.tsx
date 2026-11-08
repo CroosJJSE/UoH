@@ -1,8 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArchiveItem, CommunityMember, ContributionDraft, recipeDescription } from '../types';
 import { X, Upload, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
-import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
+import { isCloudinaryConfigured, uploadMedia } from '../services/cloudinary';
 import { toUserMessage } from '../lib/errors';
+import {
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_VIDEO_TYPES,
+  MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  VIDEO_TOO_LARGE_MESSAGE,
+} from '../lib/constants';
+import { isVideoUrl } from '../lib/media';
+import { ArchiveMedia } from './ArchiveMedia';
 
 type ComposerDraft = {
   id?: string;
@@ -16,7 +25,7 @@ type ComposerDraft = {
 };
 
 function draftStorageKey(userId: string) {
-  return `uoh-composer-draft:${userId}`;
+  return `uoh-composer-open:${userId}`;
 }
 
 function readComposerDraft(userId: string): ComposerDraft | null {
@@ -64,7 +73,9 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [mediaKind, setMediaKind] = useState<'image' | 'video'>('image');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +84,7 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [hydrated, setHydrated] = useState(false);
   const draftIdRef = useRef<string | null>(null);
   const savingRef = useRef<Promise<string | void> | null>(null);
+  const persistBlockedRef = useRef(false);
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
@@ -107,10 +119,17 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   };
 
   useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) {
       setHydrated(false);
       return;
     }
+    persistBlockedRef.current = false;
     const item = editingItem;
     const saved = !item ? readComposerDraft(currentUser.id) : null;
     draftIdRef.current = item?.id ?? saved?.id ?? null;
@@ -120,7 +139,14 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     );
     setTitle(item?.title ?? saved?.title ?? '');
     setContent(item ? recipeDescription(item) : saved?.content ?? '');
-    setImagePreview(item?.images?.[0] ?? (saved?.imagePreview?.startsWith('https://') ? saved.imagePreview : '') ?? '');
+    const preview =
+      item?.images?.[0] ?? (saved?.imagePreview?.startsWith('https://') ? saved.imagePreview : '') ?? '';
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    setImagePreview(preview);
+    setMediaKind(isVideoUrl(preview) ? 'video' : 'image');
     setImageFile(null);
     setGoldenQuote(item?.metadata?.goldenQuote ?? saved?.goldenQuote ?? '');
     setLifePrinciple(item?.metadata?.lifePrinciple ?? saved?.lifePrinciple ?? '');
@@ -129,8 +155,9 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   }, [isOpen, editingItem, currentUser.id]);
 
   useEffect(() => {
-    if (!isOpen || !hydrated || editingItem) return;
+    if (!isOpen || !hydrated || editingItem || persistBlockedRef.current) return;
     const timer = window.setTimeout(() => {
+      if (persistBlockedRef.current) return;
       writeComposerDraft(currentUser.id, composeLocalDraft());
     }, 400);
     return () => window.clearTimeout(timer);
@@ -156,11 +183,14 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     if (contentRequired && !content.trim()) return;
 
     const timer = window.setTimeout(() => {
+      if (persistBlockedRef.current) return;
       const run = Promise.resolve(savingRef.current).then(async () => {
+        if (persistBlockedRef.current) return;
         const id = await onSaveRef.current(
           composeContributionDraft(),
           draftIdRef.current ?? editingItem?.id ?? undefined
         );
+        if (persistBlockedRef.current) return id;
         if (id) {
           draftIdRef.current = id;
           writeComposerDraft(currentUser.id, composeLocalDraft());
@@ -193,14 +223,31 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+
+    const video = ALLOWED_VIDEO_TYPES.includes(file.type as (typeof ALLOWED_VIDEO_TYPES)[number]);
+    const image = ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number]);
+    if (!video && !image) {
+      setError('Please choose a JPG, PNG, WebP, GIF, MP4, WebM, or MOV file.');
+      return;
     }
+    if (video && file.size > MAX_VIDEO_BYTES) {
+      setError(VIDEO_TOO_LARGE_MESSAGE);
+      return;
+    }
+    if (image && file.size > MAX_IMAGE_BYTES) {
+      setError('Images must be 8 MB or smaller.');
+      return;
+    }
+
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    setError(null);
+    setImageFile(file);
+    setMediaKind(video ? 'video' : 'image');
+    setImagePreview(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -215,12 +262,13 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
       await Promise.resolve(savingRef.current);
       const draft = composeContributionDraft();
       if (imageFile) {
-        draft.images = [await uploadImage(imageFile)];
+        draft.images = [await uploadMedia(imageFile)];
       }
 
       const id = await onSave(draft, draftIdRef.current ?? editingItem?.id ?? undefined);
-      if (id) draftIdRef.current = id;
-      if (!editingItem) clearComposerDraft(currentUser.id);
+      persistBlockedRef.current = true;
+      draftIdRef.current = id ?? null;
+      clearComposerDraft(currentUser.id);
       onClose();
     } catch (err) {
       setError(toUserMessage(err));
@@ -432,33 +480,42 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
           {/* Image Upload Area */}
           <div>
             <label className="block text-xs font-semibold text-[#A8A196] mb-2">
-              Attach Photograph or Image (Optional)
+              Attach a photo or video (optional)
             </label>
             <div className="flex items-center gap-4">
               <label className="flex-1 flex flex-col items-center justify-center p-5 border-2 border-dashed border-[#2E2A25] hover:border-[#E8B45A]/50 rounded-xl cursor-pointer bg-[#181714] transition-colors">
                 <Upload className="w-5 h-5 text-[#E8B45A] mb-1.5" />
-                <span className="text-xs text-[#F5EFE3] font-medium">Click to upload photo</span>
-                <span className="text-[10px] text-[#6E675D]">JPG, PNG, or WebP</span>
+                <span className="text-xs text-[#F5EFE3] font-medium">Click to upload photo or video</span>
+                <span className="text-[10px] text-[#6E675D]">
+                  JPG, PNG, WebP, GIF, MP4, WebM, or MOV · videos up to 10 MB. Over that, send it to yourself on
+                  WhatsApp first, then upload here.
+                </span>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
                   onChange={handleImageUpload}
                   className="hidden"
                 />
               </label>
 
-              {imagePreview && (
+              {imagePreview && mediaKind === 'image' && (
                 <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-[#2E2A25] shrink-0">
-                  <img
+                  <ArchiveMedia
                     src={imagePreview}
                     alt="Preview"
+                    kind="image"
                     className="w-full h-full object-cover"
                   />
                   <button
                     type="button"
                     onClick={() => {
+                      if (objectUrlRef.current) {
+                        URL.revokeObjectURL(objectUrlRef.current);
+                        objectUrlRef.current = null;
+                      }
                       setImagePreview('');
                       setImageFile(null);
+                      setMediaKind('image');
                     }}
                     className="absolute top-1 right-1 p-1 rounded-full bg-[#111210]/90 text-[#ffb4ab] cursor-pointer"
                   >
@@ -467,12 +524,38 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
                 </div>
               )}
             </div>
+            {imagePreview && mediaKind === 'video' && (
+              <div className="relative mt-3 rounded-xl overflow-hidden border border-[#2E2A25]">
+                <ArchiveMedia
+                  src={imagePreview}
+                  alt="Video preview"
+                  kind="video"
+                  mode="player"
+                  className="w-full max-h-48 bg-[#111210]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (objectUrlRef.current) {
+                      URL.revokeObjectURL(objectUrlRef.current);
+                      objectUrlRef.current = null;
+                    }
+                    setImagePreview('');
+                    setImageFile(null);
+                    setMediaKind('image');
+                  }}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-[#111210]/90 text-[#ffb4ab] cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {error && <p className="text-xs text-[#ffb4ab]">{error}</p>}
           {!isCloudinaryConfigured() && (
             <p className="text-[11px] text-[#6E675D]">
-              Image upload requires Cloudinary unsigned preset variables. You can still preserve text-only records.
+              Photo and video upload requires Cloudinary unsigned preset variables. The preset must allow video. You can still preserve text-only records.
             </p>
           )}
 

@@ -357,7 +357,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
         <div className="min-w-0 pr-3">
           <h4 className="font-editorial text-[18px] text-[#F5EFE3] leading-snug">Offer to the Table</h4>
           <p className="text-[12px] text-[#A8A196] mt-0.5">
-            Share an artwork, recipe, song, photo, or memory.
+            Share an artwork, recipe, song, photo, video, or memory.
           </p>
         </div>
         <button

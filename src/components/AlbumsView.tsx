@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { ArchiveItem } from '../types';
 import { Camera } from 'lucide-react';
+import { ArchiveMedia } from './ArchiveMedia';
 
 interface AlbumsViewProps {
   items: ArchiveItem[];
@@ -39,12 +40,7 @@ export const AlbumsView: FC<AlbumsViewProps> = ({
         >
           {featured.images[0] && (
             <div className="relative w-full h-64 overflow-hidden">
-              <img
-                alt={featured.title}
-                src={featured.images[0]}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
+              <ArchiveMedia alt={featured.title} src={featured.images[0]} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#22201D] via-[#22201D]/40 to-transparent" />
             </div>
           )}
@@ -66,7 +62,7 @@ export const AlbumsView: FC<AlbumsViewProps> = ({
           >
             {item.images[0] && (
               <div className="aspect-16/10 w-full overflow-hidden">
-                <img src={item.images[0]} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                <ArchiveMedia src={item.images[0]} alt="" className="w-full h-full object-cover" />
               </div>
             )}
             <div className="p-4">

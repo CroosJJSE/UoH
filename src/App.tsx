@@ -54,6 +54,7 @@ export default function App() {
   const [members, setMembers] = useState<CommunityMember[]>([]);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const cursorRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const loadingFeedRef = useRef(false);
   const [loadingFeed, setLoadingFeed] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState<CategoryType>('all');
@@ -63,6 +64,8 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const loadPage = useCallback(async (reset: boolean) => {
+    if (loadingFeedRef.current) return;
+    loadingFeedRef.current = true;
     setLoadingFeed(true);
     try {
       const [page, approvedMembers] = await Promise.all([
@@ -82,9 +85,15 @@ export default function App() {
     } catch (err) {
       setFeedError(toUserMessage(err));
     } finally {
+      loadingFeedRef.current = false;
       setLoadingFeed(false);
     }
   }, []);
+
+  const handleLoadMore = useCallback(() => {
+    if (loadingFeedRef.current || !cursorRef.current) return;
+    void loadPage(false);
+  }, [loadPage]);
 
   useEffect(() => {
     if ((account?.status === 'approved' || isDemoMode) && profile) {
@@ -210,14 +219,6 @@ export default function App() {
     await refreshProfile();
   };
 
-  const categoryCounts = {
-    museum: items.filter((i) => i.category === 'museum').length,
-    recipes: items.filter((i) => i.category === 'recipes').length,
-    memories: items.filter((i) => i.category === 'memories').length,
-    wisdom: items.filter((i) => i.category === 'wisdom').length,
-    wall: visibleMembers.length,
-  };
-
   return (
     <div className="phone-shell text-[#F5EFE3] selection:bg-[#E8B45A]/30 selection:text-[#ffd187]">
       <Header
@@ -242,13 +243,10 @@ export default function App() {
           <HomeView
             items={items}
             currentUser={currentUser || INITIAL_MEMBERS[0]}
-            counts={categoryCounts}
-            onSelectCategory={setCurrentCategory}
+            hasMore={Boolean(cursor)}
+            loadingMore={loadingFeed}
             onSelectItem={(item) => void handleSelectItem(item)}
-            onOpenAddModal={() => {
-              setEditingItem(null);
-              setIsAddModalOpen(true);
-            }}
+            onLoadMore={handleLoadMore}
           />
         )}
 
@@ -263,10 +261,6 @@ export default function App() {
           <RecipesView
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
-            onOpenAddModal={() => {
-              setEditingItem(null);
-              setIsAddModalOpen(true);
-            }}
           />
         )}
 
@@ -307,12 +301,12 @@ export default function App() {
           />
         )}
 
-        {cursor && (
+        {cursor && currentCategory !== 'all' && (
           <div className="mt-8 flex justify-center pb-4">
             <button
               type="button"
               disabled={loadingFeed}
-              onClick={() => void loadPage(false)}
+              onClick={handleLoadMore}
               className="px-4 py-2 rounded-lg text-xs font-medium text-[#E8B45A] bg-[#181714]"
             >
               {loadingFeed ? 'Loading…' : 'Load earlier memories'}

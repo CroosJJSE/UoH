@@ -1,47 +1,61 @@
-import { ArchiveItem, CategoryType, CommunityMember, recipeDescription } from '../types';
-import { NotebookPen, Plus } from 'lucide-react';
+import { ArchiveItem, CommunityMember } from '../types';
 import React, { useEffect, useRef, useState } from 'react';
+import { ArchiveMedia } from './ArchiveMedia';
+
 interface HomeViewProps {
   items: ArchiveItem[];
   currentUser: CommunityMember;
-  counts: {
-    museum: number;
-    recipes: number;
-    memories: number;
-    wisdom: number;
-  };
-  onSelectCategory: (cat: CategoryType) => void;
+  hasMore: boolean;
+  loadingMore: boolean;
   onSelectItem: (item: ArchiveItem) => void;
-  onOpenAddModal: () => void;
+  onLoadMore: () => void;
 }
 
-const SHELVES: Array<{
-  id: CategoryType;
-  emoji: string;
-  title: string;
-  description: string;
-  countKey: 'museum' | 'recipes' | 'memories' | 'wisdom';
-}> = [
-  { id: 'museum', emoji: '🎨', title: 'Museum', description: 'Art, writings, creativity & wisdom', countKey: 'museum' },
-  { id: 'recipes', emoji: '🍲', title: 'Recipe Book', description: 'Meals we love and want to recreate', countKey: 'recipes' },
-  { id: 'memories', emoji: '📸', title: 'Albums', description: 'Moments worth keeping forever', countKey: 'memories' },
-  { id: 'wisdom', emoji: '🕊️', title: 'Remembered', description: 'Advice, reflections & life lessons', countKey: 'wisdom' },
-];
-
-const LABELS: Record<string, string> = {
-  museum: '🎨 Museum',
-  recipes: '🍲 Recipe Book',
-  memories: '📸 Album',
-  wisdom: '🕊️ Wisdom',
-};
+function FeedCard({
+  item,
+  onSelect,
+}: {
+  item: ArchiveItem;
+  onSelect: (item: ArchiveItem) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item)}
+      className="w-full rounded-xl bg-[#22201D] overflow-hidden text-left"
+    >
+      {item.images[0] && (
+        <div className="aspect-16/10 w-full overflow-hidden bg-[#181714]">
+          <ArchiveMedia src={item.images[0]} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="p-4">
+        {item.category === 'wisdom' && (
+          <p className="text-[11px] text-[#E8B45A] capitalize">
+            {item.subCategory?.replace('_', ' ') || 'Guidance'}
+          </p>
+        )}
+        <h3 className="font-editorial text-[20px] text-[#F5EFE3] mt-1">{item.title}</h3>
+        {item.metadata?.goldenQuote && (
+          <p className="font-editorial italic text-[18px] text-[#F5EFE3] mt-2 leading-snug line-clamp-3">
+            “{item.metadata.goldenQuote}”
+          </p>
+        )}
+        {item.content && (
+          <p className="text-[13px] text-[#A8A196] line-clamp-2 mt-1">{item.content}</p>
+        )}
+      </div>
+    </button>
+  );
+}
 
 export function HomeView({
   items,
   currentUser,
-  counts,
-  onSelectCategory,
+  hasMore,
+  loadingMore,
   onSelectItem,
-  onOpenAddModal,
+  onLoadMore,
 }: HomeViewProps) {
   const firstName = currentUser.name.split(' ')[0] || 'friend';
   const greetings = [
@@ -50,10 +64,11 @@ export function HomeView({
     `${firstName} What God spoke to you today?`,
   ];
   const featured = items.find((item) => item.images.length > 0) ?? items[0];
-  const quoteItem = items.find((item) => item.category === 'wisdom' && item.metadata?.goldenQuote);
-  const recent = items.slice(0, 2);
+  const memories = items.filter((item) => item.category === 'memories');
+  const wisdom = items.filter((item) => item.category === 'wisdom');
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetingVisible, setGreetingVisible] = useState(true);
 
@@ -78,10 +93,23 @@ export function HomeView({
       if (timeout) window.clearTimeout(timeout);
     };
   }, [greetings.length]);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !loadingMore) onLoadMore();
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore, items.length]);
+
   return (
     <div className="flex flex-col w-full gap-8">
       <section className="relative w-full overflow-hidden rounded-xl bg-[#181714] shadow-md">
-          {/* Background video */}
           <video
             src="/door_locking.mp4"
             autoPlay
@@ -93,10 +121,8 @@ export function HomeView({
             ref={videoRef}
           />
 
-          {/* Dark gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/100 via-black/50 to-transparent" />
 
-          {/* Quote */}
           <div className="absolute bottom-0 left-0 w-full p-5 sm:p-7">
             <p className="font-editorial text-xl sm:text-2xl md:text-3xl text-[#F5EFE3] leading-snug">
               Door locks automatically.
@@ -137,13 +163,11 @@ export function HomeView({
           >
             {featured.images[0] && (
               <div className="relative w-full aspect-16/10 rounded-lg overflow-hidden bg-[#181714]">
-                <img
+                <ArchiveMedia
                   alt={featured.title}
                   src={featured.images[0]}
-                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover contrast-[1.02] brightness-95"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#22201D]/90 via-transparent to-black/20" />
                 <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#111210]/80 backdrop-blur-sm">
                   <span className="text-[11px] text-[#E8B45A] tracking-wider capitalize">
                     {featured.category.replace('_', ' ')}
@@ -166,91 +190,34 @@ export function HomeView({
         </section>
       )}
 
-
-
       <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <h3 className="font-editorial text-[20px] text-[#F5EFE3]">Scrapbook Shelves</h3>
-          <span className="text-[11px] text-[#6E675D] tracking-wider uppercase">4 Collections</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {SHELVES.map((shelf) => (
-            <button
-              key={shelf.id}
-              type="button"
-              onClick={() => onSelectCategory(shelf.id)}
-              className="rounded-xl bg-[#22201D] p-5 flex flex-col justify-between min-h-[148px] text-left"
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-2xl">{shelf.emoji}</span>
-                <span className="text-[11px] text-[#E8B45A] bg-[#181714] px-2 py-0.5 rounded-full tabular-nums">
-                  {counts[shelf.countKey]}
-                </span>
-              </div>
-              <div className="flex flex-col mt-3">
-                <span className="font-editorial text-[20px] leading-7 text-[#F5EFE3]">{shelf.title}</span>
-                <span className="text-[13px] leading-5 text-[#A8A196] mt-0.5">{shelf.description}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+        <h3 className="font-editorial text-[20px] text-[#F5EFE3]">
+          Our <span className="italic text-[#ffd187]">Memories</span>
+        </h3>
+        {memories.map((item) => (
+          <FeedCard key={item.id} item={item} onSelect={onSelectItem} />
+        ))}
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <h3 className="font-editorial text-[20px] text-[#F5EFE3]">Recent Leaves</h3>
-            <p className="text-[13px] text-[#6E675D] truncate">Living community feed</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3">
-          {recent.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSelectItem(item)}
-              className="w-full rounded-xl bg-[#22201D] p-5 flex flex-col text-left overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] text-[#E8B45A] bg-[#181714] px-2 py-0.5 rounded-full">
-                  {LABELS[item.category] || item.category}
-                </span>
-                <span className="text-[11px] text-[#6E675D] shrink-0">{item.createdAt}</span>
-              </div>
-              {item.images[0] ? (
-                <div className="w-full h-32 rounded-lg overflow-hidden bg-[#181714] mt-3">
-                  <img
-                    src={item.images[0]}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : item.metadata?.goldenQuote ? (
-                <div className="w-full h-32 rounded-lg bg-[#181714] p-3 flex flex-col justify-center mt-3">
-                  <p className="font-editorial text-[20px] text-[#A8A196] italic line-clamp-3">
-                    “{item.metadata.goldenQuote}”
-                  </p>
-                </div>
-              ) : null}
-              {item.content ? (
-                <p className="text-[13px] leading-5 text-[#A8A196] line-clamp-2 mt-1">{item.content}</p>
-              ) : item.category === 'recipes' && recipeDescription(item) ? (
-                <p className="text-[13px] leading-5 text-[#A8A196] line-clamp-2 mt-1">{recipeDescription(item)}</p>
-              ) : null}
-              <div className="flex items-center gap-2 pt-3 mt-3 min-w-0">
-                <img
-                  src={item.author.avatar}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  className="w-6 h-6 rounded-full object-cover shrink-0"
-                />
-                <span className="text-[13px] text-[#F5EFE3] truncate">{item.author.name}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+        <h3 className="font-editorial italic text-[20px] text-[#F5EFE3]">Remembered</h3>
+        {wisdom.map((item) => (
+          <FeedCard key={item.id} item={item} onSelect={onSelectItem} />
+        ))}
       </section>
+
+      <div ref={loadMoreRef} className="flex flex-col items-center gap-2 pb-2">
+        {hasMore && (
+          <button
+            type="button"
+            disabled={loadingMore}
+            onClick={onLoadMore}
+            className="px-4 py-2 rounded-lg text-xs font-medium text-[#E8B45A] bg-[#181714]"
+          >
+            {loadingMore ? 'Loading…' : 'Load earlier posts'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
