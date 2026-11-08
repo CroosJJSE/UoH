@@ -5,8 +5,6 @@ import { Camera } from 'lucide-react';
 interface AlbumsViewProps {
   items: ArchiveItem[];
   onSelect: (item: ArchiveItem) => void;
-  onStar: (itemId: string) => void;
-  currentUserId: string;
   onOpenAddModal: () => void;
 }
 

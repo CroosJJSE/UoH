@@ -1,6 +1,6 @@
+import { FirebaseError } from 'firebase/app';
 import {
   Timestamp,
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -10,6 +10,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   startAfter,
   updateDoc,
   where,
@@ -19,14 +20,22 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { PAGE_SIZE, COMMENT_PAGE_SIZE } from '../lib/constants';
-import { ArchiveCategory, ArchiveItem, Comment, CommunityMember, ContributionDraft } from '../types';
+import { PAGE_SIZE, COMMENT_PAGE_SIZE, DEFAULT_AVATAR } from '../lib/constants';
+import { ArchiveCategory, ArchiveItem, Comment, CommunityMember, ContributionDraft, recipeDescription } from '../types';
+
+function isAlreadyExists(err: unknown): boolean {
+  return (
+    (err instanceof FirebaseError && err.code === 'already-exists') ||
+    (err instanceof Error && /already exists/i.test(err.message))
+  );
+}
 
 interface ContributionDoc {
   authorId: string;
   category: ArchiveCategory;
   subCategory: string;
   title: string;
+  subtitle: string;
   content: string;
   images: string[];
   author: {
@@ -67,7 +76,7 @@ function mapContribution(id: string, data: ContributionDoc, comments: Comment[] 
     category: data.category,
     subCategory: data.subCategory,
     title: data.title,
-    content: data.content,
+    content: data.category === 'recipes' ? recipeDescription(data) : data.content,
     images: data.images ?? [],
     author: {
       name: data.author.name,
@@ -120,21 +129,20 @@ export async function getContribution(id: string): Promise<ArchiveItem | null> {
   return mapContribution(id, snap.data() as ContributionDoc, comments);
 }
 
-export async function createContribution(
-  author: CommunityMember,
-  draft: ContributionDraft
-): Promise<ArchiveItem> {
+function buildPayload(author: CommunityMember, draft: ContributionDraft): ContributionDoc {
   const now = Timestamp.now();
-  const payload: ContributionDoc = {
+  const title = draft.title.trim();
+  return {
     authorId: author.id,
     category: draft.category,
     subCategory: draft.subCategory,
-    title: draft.title.trim(),
-    content: draft.content.trim(),
+    title,
+    subtitle: '',
+    content: draft.content.trim() || title,
     images: draft.images,
     author: {
       name: author.name,
-      avatar: author.avatar,
+      avatar: author.avatar?.startsWith('https://') ? author.avatar : DEFAULT_AVATAR(author.name),
       fellowshipYear: author.fellowshipYear || '',
     },
     createdAt: now,
@@ -144,29 +152,44 @@ export async function createContribution(
     commentsCount: 0,
     metadata: compactMetadata(draft.metadata),
   };
+}
+
+function contentUpdate(draft: ContributionDraft) {
+  const title = draft.title.trim();
+  return {
+    category: draft.category,
+    subCategory: draft.subCategory,
+    title,
+    content: draft.content.trim() || title,
+    images: draft.images,
+    metadata: compactMetadata(draft.metadata),
+    updatedAt: serverTimestamp(),
+  };
+}
+
+export async function createContribution(
+  author: CommunityMember,
+  draft: ContributionDraft,
+  existingId?: string
+): Promise<ArchiveItem> {
+  const payload = buildPayload(author, draft);
+  const ref = existingId ? doc(db, 'contributions', existingId) : doc(contributionsCol());
 
   try {
-    const ref = await addDoc(contributionsCol(), payload);
-    return mapContribution(ref.id, payload);
+    await setDoc(ref, payload);
   } catch (err) {
-    console.warn('Firestore write failed or offline, using local item:', err);
-    return mapContribution('local-' + Date.now(), payload);
+    if (!isAlreadyExists(err)) throw err;
+    await updateDoc(ref, contentUpdate(draft));
   }
+
+  return mapContribution(ref.id, payload);
 }
 
 export async function updateContribution(
   id: string,
   draft: ContributionDraft
 ): Promise<void> {
-  await updateDoc(doc(db, 'contributions', id), {
-    category: draft.category,
-    subCategory: draft.subCategory,
-    title: draft.title.trim(),
-    content: draft.content.trim(),
-    images: draft.images,
-    metadata: compactMetadata(draft.metadata),
-    updatedAt: serverTimestamp(),
-  });
+  await updateDoc(doc(db, 'contributions', id), contentUpdate(draft));
 }
 
 export async function deleteContribution(id: string): Promise<void> {

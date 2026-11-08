@@ -18,16 +18,14 @@ import { PAGE_SIZE } from './lib/constants';
 import { toUserMessage } from './lib/errors';
 import { listApprovedMembers, updateOwnProfile } from './services/users';
 import {
-  addComment,
   createContribution,
   deleteContribution,
   exportArchiveJson,
   getContribution,
   listContributions,
-  toggleStar,
   updateContribution,
 } from './services/contributions';
-import { INITIAL_ARCHIVE_ITEMS, INITIAL_MEMBERS } from './data/initialData';
+import { INITIAL_MEMBERS } from './data/initialData';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 function withDerivedStats(members: CommunityMember[], items: ArchiveItem[]): CommunityMember[] {
@@ -52,8 +50,8 @@ export default function App() {
     enterDemoMode,
     isDemoMode,
   } = useAuth();
-  const [items, setItems] = useState<ArchiveItem[]>(INITIAL_ARCHIVE_ITEMS);
-  const [members, setMembers] = useState<CommunityMember[]>(INITIAL_MEMBERS);
+  const [items, setItems] = useState<ArchiveItem[]>([]);
+  const [members, setMembers] = useState<CommunityMember[]>([]);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const cursorRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [loadingFeed, setLoadingFeed] = useState(false);
@@ -74,16 +72,11 @@ export default function App() {
         }),
         reset ? listApprovedMembers() : Promise.resolve(null),
       ]);
-      setItems((prev) => {
-        if (reset) {
-          return page.items.length > 0 ? page.items : INITIAL_ARCHIVE_ITEMS;
-        }
-        return [...prev, ...page.items];
-      });
+      setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
       cursorRef.current = page.cursor;
       setCursor(page.cursor);
       if (approvedMembers) {
-        setMembers(approvedMembers.length > 0 ? approvedMembers : INITIAL_MEMBERS);
+        setMembers(approvedMembers);
       }
       setFeedError(null);
     } catch (err) {
@@ -165,50 +158,30 @@ export default function App() {
     return <div className="phone-shell" />;
   }
 
-  const replaceItem = (updated: ArchiveItem) => {
-    setItems((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
-    setSelectedItem((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
-  };
-
-  const handleToggleStar = async (itemId: string) => {
-    const item = (selectedItem && selectedItem.id === itemId ? selectedItem : null)
-      ?? items.find((entry) => entry.id === itemId);
-    if (!item) return;
-    try {
-      replaceItem(await toggleStar(item, currentUser.id));
-    } catch (err) {
-      setFeedError(toUserMessage(err));
-    }
-  };
-
-  const handleAddComment = async (itemId: string, text: string) => {
-    const item = selectedItem && selectedItem.id === itemId ? selectedItem : items.find((entry) => entry.id === itemId);
-    if (!item) return;
-    try {
-      const comment = await addComment(item, currentUser, text);
-      replaceItem({
-        ...item,
-        comments: [comment, ...item.comments],
-        commentsCount: item.commentsCount + 1,
-      });
-    } catch (err) {
-      setFeedError(toUserMessage(err));
-    }
-  };
-
   const handleSaveItem = async (draft: ContributionDraft, existingId?: string) => {
+    let saved: ArchiveItem;
     if (existingId) {
-      await updateContribution(existingId, draft);
-      const refreshed = await getContribution(existingId);
-      if (refreshed) {
-        replaceItem(refreshed);
+      try {
+        await updateContribution(existingId, draft);
+        saved = (await getContribution(existingId)) ?? (await createContribution(currentUser, draft, existingId));
+      } catch (err) {
+        const code = typeof err === 'object' && err && 'code' in err ? String((err as { code: string }).code) : '';
+        const message = err instanceof Error ? err.message : '';
+        if (!/already-exists|not-found/i.test(code) && !/already exists|No document/i.test(message)) throw err;
+        saved = await createContribution(currentUser, draft, existingId);
       }
-      setEditingItem(null);
-      return;
+    } else {
+      saved = await createContribution(currentUser, draft);
     }
 
-    const created = await createContribution(currentUser, draft);
-    setItems((prev) => [created, ...prev]);
+    setItems((prev) => {
+      if (prev.some((item) => item.id === saved.id)) {
+        return prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item));
+      }
+      return [saved, ...prev];
+    });
+    setSelectedItem((prev) => (prev && prev.id === saved.id ? { ...prev, ...saved } : prev));
+    return saved.id;
   };
 
   const handleSelectItem = async (item: ArchiveItem) => {
@@ -283,8 +256,6 @@ export default function App() {
           <MuseumView
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
-            onStar={(id) => void handleToggleStar(id)}
-            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
           />
         )}
 
@@ -292,8 +263,6 @@ export default function App() {
           <RecipesView
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
-            onStar={(id) => void handleToggleStar(id)}
-            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -305,8 +274,6 @@ export default function App() {
           <AlbumsView
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
-            onStar={(id) => void handleToggleStar(id)}
-            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -318,8 +285,6 @@ export default function App() {
           <WisdomView
             items={items}
             onSelect={(item) => void handleSelectItem(item)}
-            onStar={(id) => void handleToggleStar(id)}
-            currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
             onOpenAddModal={() => {
               setEditingItem(null);
               setIsAddModalOpen(true);
@@ -379,8 +344,6 @@ export default function App() {
       <ItemDetailModal
         item={selectedItem}
         onClose={() => setSelectedItem(null)}
-        onStar={(id) => void handleToggleStar(id)}
-        onAddComment={(id, text) => void handleAddComment(id, text)}
         onEdit={(item) => {
           setEditingItem(item);
           setSelectedItem(null);

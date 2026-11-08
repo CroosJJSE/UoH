@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { ArchiveItem, CommunityMember } from '../types';
-import { X, Heart, MessageSquare, Music2, Check, Copy } from 'lucide-react';
+import { ArchiveItem, CommunityMember, recipeDescription } from '../types';
+import { X, Music2, Check, Copy } from 'lucide-react';
 
 interface ItemDetailModalProps {
   item: ArchiveItem | null;
   onClose: () => void;
-  onStar: (itemId: string) => void;
-  onAddComment: (itemId: string, text: string) => void;
   onEdit?: (item: ArchiveItem) => void;
   onDelete?: (item: ArchiveItem) => void;
   currentUser: CommunityMember;
@@ -15,43 +13,23 @@ interface ItemDetailModalProps {
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   item,
   onClose,
-  onStar,
-  onAddComment,
   onEdit,
   onDelete,
   currentUser,
 }) => {
-  const [commentText, setCommentText] = useState('');
-  const [checkedIngredients, setCheckedIngredients] = useState<Record<number, boolean>>({});
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   if (!item) return null;
 
-  const isStarred = item.starredBy.includes(currentUser.id);
   const canManage =
     item.authorId === currentUser.id || currentUser.role === 'ADMIN' || currentUser.role === 'MASTER_ADMIN';
   const canEdit = item.authorId === currentUser.id;
-  const isRecipe = item.category === 'recipes';
   const isSong = item.category === 'museum' && item.subCategory === 'songs';
-
-  const handleToggleIngredient = (idx: number) => {
-    setCheckedIngredients((prev) => ({
-      ...prev,
-      [idx]: !prev[idx],
-    }));
-  };
 
   const handleCopyPrompt = (prompt: string) => {
     navigator.clipboard.writeText(prompt);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
-  };
-
-  const handleSubmitComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
-    onAddComment(item.id, commentText.trim());
-    setCommentText('');
   };
 
   return (
@@ -157,94 +135,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </div>
         )}
 
-        {/* Non-Recipe Content Prose (Only for Museum, Albums, Wisdom) */}
-        {!isRecipe && item.content && (
+        {(item.category === 'recipes' ? recipeDescription(item) : item.content) && (
           <div className="prose prose-invert max-w-none mb-8">
             <p className="text-sm sm:text-base text-[#F5EFE3]/90 leading-relaxed whitespace-pre-line">
-              {item.content}
+              {item.category === 'recipes' ? recipeDescription(item) : item.content}
             </p>
           </div>
         )}
-
-        {/* Recipe Specific Sections: Ingredients & Steps ONLY */}
-        {isRecipe && item.metadata && (
-          <div className="mb-8 space-y-6 p-5 rounded-xl bg-[#22201D] border border-[#2E2A25]">
-            {/* Ingredients with interactive checkboxes */}
-            {item.metadata.ingredients && item.metadata.ingredients.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#E8B45A] mb-3">
-                  Ingredients (Tap to check off)
-                </h4>
-                <div className="flex flex-col gap-1.5">
-                  {item.metadata.ingredients.map((ing, idx) => {
-                    const isChecked = !!checkedIngredients[idx];
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => handleToggleIngredient(idx)}
-                        className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-colors ${
-                          isChecked ? 'bg-[#181714] opacity-50 line-through' : 'hover:bg-[#2B2824]'
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${
-                            isChecked
-                              ? 'bg-[#E8B45A] border-[#E8B45A] text-[#111210]'
-                              : 'border-[#423D35]'
-                          }`}
-                        >
-                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                        <span className="text-xs text-[#F5EFE3]">{ing}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Preparation Steps */}
-            {item.metadata.steps && item.metadata.steps.length > 0 && (
-              <div className="pt-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#E8B45A] mb-3">
-                  Step-by-Step Instructions
-                </h4>
-                <ol className="space-y-3">
-                  {item.metadata.steps.map((st, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-[#A8A196] leading-relaxed">
-                      <span className="w-6 h-6 rounded-full bg-[#181714] border border-[#2E2A25] text-[#E8B45A] font-semibold text-xs flex items-center justify-center shrink-0 tabular-nums">
-                        {idx + 1}
-                      </span>
-                      <span className="pt-0.5">{st}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Cherish Offering Action Row */}
-        <div className="flex items-center justify-between p-4 rounded-xl bg-[#22201D] border border-[#2E2A25] mb-8">
-          <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 fill-[#E8B45A] text-[#E8B45A]" />
-            <span className="text-sm font-semibold text-[#F5EFE3]">
-              Community Offering
-            </span>
-          </div>
-
-          <button
-            onClick={() => onStar(item.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              isStarred
-                ? 'bg-[#E8B45A] text-[#111210]'
-                : 'bg-[#181714] text-[#E8B45A] border border-[#E8B45A] hover:bg-[#E8B45A] hover:text-[#111210]'
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${isStarred ? 'fill-[#111210]' : ''}`} />
-            <span>{isStarred ? 'Cherished' : 'Cherish Offering'}</span>
-          </button>
-        </div>
 
         {canManage && (
           <div className="flex items-center justify-end gap-3 mb-6">
@@ -268,78 +165,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             )}
           </div>
         )}
-
-        {/* Community Comments & Reflections */}
-        <div className="space-y-6 pt-4 border-t border-[#2E2A25]">
-          <div className="flex items-center justify-between">
-            <h3 className="font-editorial text-2xl text-[#F5EFE3] font-medium flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-[#E8B45A]" />
-              <span>Fellowship Reflections ({item.commentsCount})</span>
-            </h3>
-          </div>
-
-          {/* Comment Form */}
-          <form onSubmit={handleSubmitComment} className="space-y-3">
-            <div className="flex items-start gap-3">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                referrerPolicy="no-referrer"
-                className="w-8 h-8 rounded-full object-cover shrink-0 mt-1 ring-1 ring-[#E8B45A]"
-              />
-              <div className="flex-1">
-                <textarea
-                  rows={2}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={`Write a reflection as ${currentUser.name}...`}
-                  className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none leading-relaxed"
-                />
-                <div className="flex justify-end mt-2">
-                  <button
-                    type="submit"
-                    disabled={!commentText.trim()}
-                    className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] disabled:opacity-50 transition-colors cursor-pointer"
-                  >
-                    Post Reflection
-                  </button>
-                </div>
-              </div>
-            </div>
-          </form>
-
-          {/* Comments List */}
-          <div className="space-y-4">
-            {item.comments.length === 0 ? (
-              <p className="text-xs text-[#6E675D] italic">
-                No reflections added yet. Be the first to share your thoughts.
-              </p>
-            ) : (
-              item.comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="p-4 rounded-xl bg-[#22201D] border border-[#2E2A25] space-y-2"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={comment.authorAvatar}
-                        alt={comment.authorName}
-                        referrerPolicy="no-referrer"
-                        className="w-5 h-5 rounded-full object-cover"
-                      />
-                      <span className="font-medium text-[#F5EFE3]">{comment.authorName}</span>
-                    </div>
-                    <span className="text-[#6E675D]">{comment.createdAt}</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-[#A8A196] leading-relaxed pl-7">
-                    {comment.text}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

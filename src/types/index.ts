@@ -38,11 +38,12 @@ export interface ArchiveItem {
   createdAt: string;
   starsCount: number;
   starredBy: string[];
-  comments: Comment[];
-  commentsCount: number;
-  metadata?: {
-    ingredients?: string[];
-    steps?: string[];
+    comments: Comment[];
+    commentsCount: number;
+    metadata?: {
+      /** @deprecated kept so old recipe docs still render via recipeDescription() */
+      ingredients?: string[];
+      steps?: string[];
     medium?: string;
     yearCreated?: string;
     scriptureVerse?: string;
@@ -77,6 +78,17 @@ export interface AccountRecord {
   email: string;
   role: UserRole;
   status: AccountStatus;
+}
+
+/** Prefer content. If empty, format leftover ingredients/steps from older recipe docs. */
+export function recipeDescription(item: { content?: string; metadata?: ArchiveItem['metadata'] }): string {
+  if (item.content?.trim()) return item.content;
+  const ingredients = item.metadata?.ingredients ?? [];
+  const steps = item.metadata?.steps ?? [];
+  const parts: string[] = [];
+  if (ingredients.length) parts.push(ingredients.map((i) => `• ${i}`).join('\n'));
+  if (steps.length) parts.push(steps.map((s, i) => `${i + 1}. ${s}`).join('\n'));
+  return parts.join('\n\n');
 }
 
 export interface ContributionDraft {

@@ -4,8 +4,6 @@ import { ArchiveItem } from '../types';
 interface MuseumViewProps {
   items: ArchiveItem[];
   onSelect: (item: ArchiveItem) => void;
-  onStar: (itemId: string) => void;
-  currentUserId: string;
 }
 
 export const MuseumView: FC<MuseumViewProps> = ({

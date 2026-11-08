@@ -5,8 +5,6 @@ import { Plus } from 'lucide-react';
 interface WisdomViewProps {
   items: ArchiveItem[];
   onSelect: (item: ArchiveItem) => void;
-  onStar: (itemId: string) => void;
-  currentUserId: string;
   onOpenAddModal: () => void;
 }
 

@@ -1,4 +1,4 @@
-import { ArchiveItem, CategoryType, CommunityMember } from '../types';
+import { ArchiveItem, CategoryType, CommunityMember, recipeDescription } from '../types';
 import { NotebookPen, Plus } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 interface HomeViewProps {
@@ -235,8 +235,8 @@ export function HomeView({
               ) : null}
               {item.content ? (
                 <p className="text-[13px] leading-5 text-[#A8A196] line-clamp-2 mt-1">{item.content}</p>
-              ) : item.category === 'recipes' && item.metadata?.ingredients?.length ? (
-                <p className="text-[12px] leading-5 text-[#E8B45A]/90 mt-1">{item.metadata.ingredients.length} ingredients</p>
+              ) : item.category === 'recipes' && recipeDescription(item) ? (
+                <p className="text-[13px] leading-5 text-[#A8A196] line-clamp-2 mt-1">{recipeDescription(item)}</p>
               ) : null}
               <div className="flex items-center gap-2 pt-3 mt-3 min-w-0">
                 <img

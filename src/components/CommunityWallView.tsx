@@ -2,7 +2,7 @@ import { useMemo, useState, type FC } from 'react';
 import { ArchiveItem, CommunityMember } from '../types';
 import { AdminPanel } from './AdminPanel';
 import { isSteward } from '../services/users';
-import { ArrowLeft, BookOpen, Download, Plus, Sparkles, User, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, Plus, Sparkles, X } from 'lucide-react';
 
 interface CommunityWallViewProps {
   members: CommunityMember[];
@@ -13,8 +13,6 @@ interface CommunityWallViewProps {
   onSelectItem: (item: ArchiveItem) => void;
   onOpenAddModal: () => void;
 }
-
-type SkyFilter = 'all' | 'active' | 'new';
 
 interface ConstellationSlot {
   top: string;
@@ -127,7 +125,6 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
   onSelectItem,
   onOpenAddModal,
 }) => {
-  const [filter, setFilter] = useState<SkyFilter>('all');
   const [historyMember, setHistoryMember] = useState<CommunityMember | null>(null);
 
   // Sort members by post count descending
@@ -172,9 +169,6 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
             Fellowship Constellation
           </span>
           <h2 className="font-editorial text-[34px] leading-[42px] text-[#F5EFE3] mt-1">Community</h2>
-          <p className="text-[13px] text-[#A8A196] mt-1">
-            Every soul anchored around the Hathbodhiya table, joined in memory and gratitude.
-          </p>
         </header>
 
         {/* User Profile Quick Access */}
@@ -209,68 +203,8 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
       {/* Steward Admin Panel (if applicable) */}
       {isSteward(currentUser) && <AdminPanel currentUser={currentUser} />}
 
-      {/* Sky View Filter Pills */}
-      <div className="flex items-center justify-center gap-2 overflow-x-auto py-1">
-        <button
-          type="button"
-          onClick={() => setFilter('all')}
-          className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all duration-200 ${
-            filter === 'all'
-              ? 'bg-[#22201D] text-[#E8B45A] border border-[#E8B45A]/30 shadow-sm'
-              : 'bg-[#181714] text-[#A8A196] hover:text-[#F5EFE3]'
-          }`}
-        >
-          {filter === 'all' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E8B45A] animate-pulse" />
-          )}
-          <span>Whole Sky ({members.length} Souls)</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setFilter('active')}
-          className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-200 ${
-            filter === 'active'
-              ? 'bg-[#22201D] text-[#E8B45A] border border-[#E8B45A]/30 shadow-sm'
-              : 'bg-[#181714] text-[#A8A196] hover:text-[#F5EFE3]'
-          }`}
-        >
-          <span>This Month</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setFilter('new')}
-          className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-200 ${
-            filter === 'new'
-              ? 'bg-[#22201D] text-[#E8B45A] border border-[#E8B45A]/30 shadow-sm'
-              : 'bg-[#181714] text-[#A8A196] hover:text-[#F5EFE3]'
-          }`}
-        >
-          <span>New Faces</span>
-        </button>
-      </div>
-
       {/* Interactive Dynamic Constellation Map */}
-      <div className="relative w-full h-[470px] bg-[#181714] rounded-2xl overflow-hidden p-2 shadow-inner border border-[#2E2A25]">
-        {/* Filament Starlight Connections SVG */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-30"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <line stroke="#E8B45A" strokeDasharray="3 3" strokeWidth="0.75" x1="50%" y1="20%" x2="18%" y2="16%" />
-          <line stroke="#E8B45A" strokeDasharray="3 3" strokeWidth="0.75" x1="50%" y1="20%" x2="82%" y2="18%" />
-          <line stroke="#E8B45A" strokeWidth="0.75" x1="50%" y1="20%" x2="26%" y2="46%" />
-          <line stroke="#E8B45A" strokeWidth="0.75" x1="50%" y1="20%" x2="76%" y2="48%" />
-          <line stroke="#E8B45A" strokeDasharray="2 4" strokeWidth="0.75" x1="26%" y1="46%" x2="12%" y2="64%" />
-          <line stroke="#E8B45A" strokeWidth="0.75" x1="26%" y1="46%" x2="46%" y2="64%" />
-          <line stroke="#E8B45A" strokeDasharray="2 4" strokeWidth="0.75" x1="76%" y1="48%" x2="88%" y2="66%" />
-          <line stroke="#E8B45A" strokeDasharray="3 3" strokeWidth="0.75" x1="46%" y1="64%" x2="74%" y2="84%" />
-          <line stroke="#E8B45A" strokeDasharray="3 3" strokeWidth="0.75" x1="12%" y1="64%" x2="24%" y2="84%" />
-        </svg>
-
-        {/* Soft Center Ambient Hearth Glow */}
-        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-[#E8B45A]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative w-full h-[470px] bg-black rounded-2xl overflow-hidden p-2">
 
         {/* Constellation Nodes */}
         {CONSTELLATION_SLOTS.map((slot, index) => {
@@ -278,10 +212,6 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
           if (!member) return null;
 
           const isSelected = inspectedMember?.id === member.id;
-          const isFilterMatch =
-            filter === 'all' ||
-            (filter === 'active' && slot.category === 'active') ||
-            (filter === 'new' && slot.category === 'new');
 
           return (
             <div
@@ -291,11 +221,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
                 top: slot.top,
                 left: slot.left,
                 right: slot.right,
-                transform: `translate(-50%, -50%) scale(${
-                  isSelected ? 1.12 : isFilterMatch ? 1 : 0.88
-                })`,
-                opacity: isFilterMatch ? 1 : 0.25,
-                pointerEvents: isFilterMatch ? 'auto' : 'none',
+                transform: `translate(-50%, -50%) scale(${isSelected ? 1.12 : 1})`,
               }}
               className="absolute flex flex-col items-center cursor-pointer group z-20 transition-all duration-300"
             >
@@ -310,7 +236,7 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
                     : slot.category === 'new'
                     ? 'p-[1.5px] bg-[#E8B45A]/35 shadow-sm'
                     : 'p-[2px] bg-[#2B2824] shadow-md group-hover:bg-[#E8B45A]/60'
-                } ${isSelected ? 'ring-2 ring-[#E8B45A] ring-offset-2 ring-offset-[#181714]' : ''}`}
+                } ${isSelected ? 'ring-2 ring-[#E8B45A] ring-offset-2 ring-offset-black' : ''}`}
               >
                 {member.avatar ? (
                   <img

@@ -1,13 +1,60 @@
-import React, { useEffect, useState } from 'react';
-import { ArchiveItem, CommunityMember, ContributionDraft } from '../types';
-import { X, Upload, Plus, Trash2, Music2, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArchiveItem, CommunityMember, ContributionDraft, recipeDescription } from '../types';
+import { X, Upload, Music2, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
 import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
 import { toUserMessage } from '../lib/errors';
+
+type ComposerDraft = {
+  id?: string;
+  category: 'museum' | 'recipes' | 'memories' | 'wisdom';
+  subCategory: string;
+  title: string;
+  content: string;
+  imagePreview: string;
+  medium: string;
+  scriptureVerse: string;
+  readingTime: string;
+  songArtist: string;
+  alexaPrompt: string;
+  lyricsSnippet: string;
+  houseMemory: string;
+  goldenQuote: string;
+  lifePrinciple: string;
+};
+
+function draftStorageKey(userId: string) {
+  return `uoh-composer-draft:${userId}`;
+}
+
+function readComposerDraft(userId: string): ComposerDraft | null {
+  try {
+    const raw = localStorage.getItem(draftStorageKey(userId));
+    return raw ? (JSON.parse(raw) as ComposerDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeComposerDraft(userId: string, draft: ComposerDraft) {
+  try {
+    localStorage.setItem(draftStorageKey(userId), JSON.stringify(draft));
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
+function clearComposerDraft(userId: string) {
+  try {
+    localStorage.removeItem(draftStorageKey(userId));
+  } catch {
+    // Ignore storage failures.
+  }
+}
 
 interface AddArchiveModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (draft: ContributionDraft, existingId?: string) => Promise<void>;
+  onSave: (draft: ContributionDraft, existingId?: string) => Promise<string | void>;
   currentUser: CommunityMember;
   editingItem?: ArchiveItem | null;
 }
@@ -29,10 +76,6 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Category specific fields
-  // Recipes: ONLY ingredients and steps
-  const [ingredients, setIngredients] = useState<string[]>(['']);
-  const [steps, setSteps] = useState<string[]>(['']);
-
   // Museum Art / Essay / Song
   const [medium, setMedium] = useState('');
   const [scriptureVerse, setScriptureVerse] = useState('');
@@ -45,78 +88,33 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   // Wisdom
   const [goldenQuote, setGoldenQuote] = useState('');
   const [lifePrinciple, setLifePrinciple] = useState('');
+  const [hydrated, setHydrated] = useState(false);
+  const draftIdRef = useRef<string | null>(null);
+  const savingRef = useRef<Promise<string | void> | null>(null);
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const item = editingItem;
-    setCategory(item?.category ?? 'recipes');
-    setSubCategory(item?.subCategory ?? (item?.category === 'museum' ? 'art' : 'mains'));
-    setTitle(item?.title ?? '');
-    setContent(item?.content ?? '');
-    setImagePreview(item?.images?.[0] ?? '');
-    setImageFile(null);
-    setIngredients(item?.metadata?.ingredients?.length ? item.metadata.ingredients : ['']);
-    setSteps(item?.metadata?.steps?.length ? item.metadata.steps : ['']);
-    setMedium(item?.metadata?.medium ?? '');
-    setScriptureVerse(item?.metadata?.scriptureVerse ?? item?.metadata?.scripturePassage ?? '');
-    setReadingTime(item?.metadata?.readingTime ?? '');
-    setSongArtist(item?.metadata?.artist ?? '');
-    setAlexaPrompt(item?.metadata?.alexaPrompt ?? '');
-    setLyricsSnippet(item?.metadata?.lyricsSnippet ?? '');
-    setHouseMemory(item?.metadata?.houseMemory ?? '');
-    setGoldenQuote(item?.metadata?.goldenQuote ?? '');
-    setLifePrinciple(item?.metadata?.lifePrinciple ?? '');
-    setError(null);
-  }, [isOpen, editingItem]);
+  const composeLocalDraft = (): ComposerDraft => ({
+    id: draftIdRef.current ?? undefined,
+    category,
+    subCategory,
+    title,
+    content,
+    imagePreview: imagePreview.startsWith('https://') ? imagePreview : '',
+    medium,
+    scriptureVerse,
+    readingTime,
+    songArtist,
+    alexaPrompt,
+    lyricsSnippet,
+    houseMemory,
+    goldenQuote,
+    lifePrinciple,
+  });
 
-  if (!isOpen) return null;
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAddIngredient = () => setIngredients([...ingredients, '']);
-  const handleRemoveIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index));
-  };
-  const handleUpdateIngredient = (index: number, val: string) => {
-    const updated = [...ingredients];
-    updated[index] = val;
-    setIngredients(updated);
-  };
-
-  const handleAddStep = () => setSteps([...steps, '']);
-  const handleRemoveStep = (index: number) => {
-    setSteps(steps.filter((_, i) => i !== index));
-  };
-  const handleUpdateStep = (index: number, val: string) => {
-    const updated = [...steps];
-    updated[index] = val;
-    setSteps(updated);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    if (category !== 'recipes' && !content.trim()) return;
-
-    setBusy(true);
-    setError(null);
-
+  const composeContributionDraft = (): ContributionDraft => {
     const metadata: ArchiveItem['metadata'] = {};
-
-    if (category === 'recipes') {
-      metadata.ingredients = ingredients.filter((i) => i.trim().length > 0);
-      metadata.steps = steps.filter((s) => s.trim().length > 0);
-    } else if (category === 'museum') {
+    if (category === 'museum') {
       if (subCategory === 'art') {
         metadata.medium = medium || undefined;
         metadata.scriptureVerse = scriptureVerse || undefined;
@@ -135,24 +133,147 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
       metadata.lifePrinciple = lifePrinciple || undefined;
     }
 
+    return {
+      category,
+      subCategory,
+      title,
+      content,
+      images: imagePreview.startsWith('https://') ? [imagePreview] : [],
+      metadata,
+    };
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setHydrated(false);
+      return;
+    }
+    const item = editingItem;
+    const saved = !item ? readComposerDraft(currentUser.id) : null;
+    draftIdRef.current = item?.id ?? saved?.id ?? null;
+    setCategory(item?.category ?? saved?.category ?? 'recipes');
+    setSubCategory(
+      item?.subCategory ?? saved?.subCategory ?? (item?.category === 'museum' ? 'art' : 'mains')
+    );
+    setTitle(item?.title ?? saved?.title ?? '');
+    setContent(item ? recipeDescription(item) : saved?.content ?? '');
+    setImagePreview(item?.images?.[0] ?? (saved?.imagePreview?.startsWith('https://') ? saved.imagePreview : '') ?? '');
+    setImageFile(null);
+    setMedium(item?.metadata?.medium ?? saved?.medium ?? '');
+    setScriptureVerse(item?.metadata?.scriptureVerse ?? item?.metadata?.scripturePassage ?? saved?.scriptureVerse ?? '');
+    setReadingTime(item?.metadata?.readingTime ?? saved?.readingTime ?? '');
+    setSongArtist(item?.metadata?.artist ?? saved?.songArtist ?? '');
+    setAlexaPrompt(item?.metadata?.alexaPrompt ?? saved?.alexaPrompt ?? '');
+    setLyricsSnippet(item?.metadata?.lyricsSnippet ?? saved?.lyricsSnippet ?? '');
+    setHouseMemory(item?.metadata?.houseMemory ?? saved?.houseMemory ?? '');
+    setGoldenQuote(item?.metadata?.goldenQuote ?? saved?.goldenQuote ?? '');
+    setLifePrinciple(item?.metadata?.lifePrinciple ?? saved?.lifePrinciple ?? '');
+    setError(null);
+    setHydrated(true);
+  }, [isOpen, editingItem, currentUser.id]);
+
+  useEffect(() => {
+    if (!isOpen || !hydrated || editingItem) return;
+    const timer = window.setTimeout(() => {
+      writeComposerDraft(currentUser.id, composeLocalDraft());
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    isOpen,
+    hydrated,
+    editingItem,
+    currentUser.id,
+    category,
+    subCategory,
+    title,
+    content,
+    imagePreview,
+    medium,
+    scriptureVerse,
+    readingTime,
+    songArtist,
+    alexaPrompt,
+    lyricsSnippet,
+    houseMemory,
+    goldenQuote,
+    lifePrinciple,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen || !hydrated) return;
+    if (!title.trim() || !content.trim()) return;
+
+    const timer = window.setTimeout(() => {
+      const run = Promise.resolve(savingRef.current).then(async () => {
+        const id = await onSaveRef.current(
+          composeContributionDraft(),
+          draftIdRef.current ?? editingItem?.id ?? undefined
+        );
+        if (id) {
+          draftIdRef.current = id;
+          writeComposerDraft(currentUser.id, composeLocalDraft());
+        }
+        return id;
+      });
+      savingRef.current = run;
+      void run.finally(() => {
+        if (savingRef.current === run) savingRef.current = null;
+      });
+    }, 800);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    isOpen,
+    hydrated,
+    editingItem,
+    currentUser.id,
+    category,
+    subCategory,
+    title,
+    content,
+    imagePreview,
+    medium,
+    scriptureVerse,
+    readingTime,
+    songArtist,
+    alexaPrompt,
+    lyricsSnippet,
+    houseMemory,
+    goldenQuote,
+    lifePrinciple,
+  ]);
+
+  if (!isOpen) return null;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !content.trim()) return;
+
+    setBusy(true);
+    setError(null);
+
     try {
-      let images = imagePreview && imagePreview.startsWith('https://') ? [imagePreview] : [];
+      await Promise.resolve(savingRef.current);
+      const draft = composeContributionDraft();
       if (imageFile) {
-        images = [await uploadImage(imageFile)];
+        draft.images = [await uploadImage(imageFile)];
       }
 
-      await onSave(
-        {
-          category,
-          subCategory,
-          title,
-          content: category === 'recipes' ? '' : content,
-          images,
-          metadata,
-        },
-        editingItem?.id
-      );
-
+      const id = await onSave(draft, draftIdRef.current ?? editingItem?.id ?? undefined);
+      if (id) draftIdRef.current = id;
+      if (!editingItem) clearComposerDraft(currentUser.id);
       onClose();
     } catch (err) {
       setError(toUserMessage(err));
@@ -313,106 +434,27 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
             />
           </div>
 
-          {/* Non-Recipe Content / Description */}
-          {category !== 'recipes' && (
-            <div>
-              <label className="block text-xs text-[#A8A196] mb-1">
-                {subCategory === 'songs'
-                  ? 'Why this song matters at Hathbodhiya *'
-                  : 'Reflection & Description *'}
-              </label>
-              <textarea
-                required
-                rows={4}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write the reflection or memory..."
-                className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none leading-relaxed"
-              />
-            </div>
-          )}
-
-          {/* RECIPE ONLY: Ingredients Builder & Steps Builder */}
-          {category === 'recipes' && (
-            <div className="space-y-5 p-4 rounded-xl bg-[#111210] border border-[#2E2A25]">
-              {/* Ingredients Builder */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[#E8B45A] font-semibold uppercase tracking-wider">
-                    Ingredients List
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAddIngredient}
-                    className="flex items-center gap-1 text-xs text-[#E8B45A] hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Ingredient
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {ingredients.map((ing, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={ing}
-                        onChange={(e) => handleUpdateIngredient(idx, e.target.value)}
-                        placeholder={`Ingredient ${idx + 1} (e.g. 4 large potatoes, quartered)`}
-                        className="flex-1 px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                      />
-                      {ingredients.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveIngredient(idx)}
-                          className="p-1.5 text-[#6E675D] hover:text-[#ffb4ab] cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cooking Steps Builder */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[#E8B45A] font-semibold uppercase tracking-wider">
-                    Step-by-Step Instructions
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleAddStep}
-                    className="flex items-center gap-1 text-xs text-[#E8B45A] hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Step
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {steps.map((st, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-xs text-[#6E675D] w-5 text-right tabular-nums">{idx + 1}.</span>
-                      <input
-                        type="text"
-                        value={st}
-                        onChange={(e) => handleUpdateStep(idx, e.target.value)}
-                        placeholder={`Step ${idx + 1} instruction...`}
-                        className="flex-1 px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                      />
-                      {steps.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveStep(idx)}
-                          className="p-1.5 text-[#6E675D] hover:text-[#ffb4ab] cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          <div>
+            <label className="block text-xs text-[#A8A196] mb-1">
+              {category === 'recipes'
+                ? 'Description *'
+                : subCategory === 'songs'
+                ? 'Why this song matters at Hathbodhiya *'
+                : 'Reflection & Description *'}
+            </label>
+            <textarea
+              required
+              rows={category === 'recipes' ? 8 : 4}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={
+                category === 'recipes'
+                  ? 'Write the recipe — ingredients, how you cook it, or any notes...'
+                  : 'Write the reflection or memory...'
+              }
+              className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none leading-relaxed"
+            />
+          </div>
 
           {/* Song in Alexa fields */}
           {category === 'museum' && subCategory === 'songs' && (
