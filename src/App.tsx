@@ -258,7 +258,7 @@ export default function App() {
         }}
       />
 
-      <main className="w-full min-h-dvh pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] px-5 overflow-x-hidden">
+      <main className="w-full min-h-dvh pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] px-5">
         {feedError && (
           <div className="mb-4 p-3 rounded-lg bg-[#181714] text-xs text-[#ffb4ab]">
             {feedError}
@@ -285,10 +285,6 @@ export default function App() {
             onSelect={(item) => void handleSelectItem(item)}
             onStar={(id) => void handleToggleStar(id)}
             currentUserId={(currentUser || INITIAL_MEMBERS[0]).id}
-            onOpenAddModal={() => {
-              setEditingItem(null);
-              setIsAddModalOpen(true);
-            }}
           />
         )}
 

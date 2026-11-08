@@ -1,19 +1,16 @@
 import { useState, type FC } from 'react';
 import { ArchiveItem } from '../types';
-import { Plus } from 'lucide-react';
 
 interface MuseumViewProps {
   items: ArchiveItem[];
   onSelect: (item: ArchiveItem) => void;
   onStar: (itemId: string) => void;
   currentUserId: string;
-  onOpenAddModal: () => void;
 }
 
 export const MuseumView: FC<MuseumViewProps> = ({
   items,
   onSelect,
-  onOpenAddModal,
 }) => {
   const [subFilter, setSubFilter] = useState<'all' | 'art' | 'articles' | 'songs'>('all');
   const museumItems = items.filter((item) => item.category === 'museum');
@@ -110,15 +107,6 @@ export const MuseumView: FC<MuseumViewProps> = ({
           </button>
         ))}
       </div>
-
-      <button
-        type="button"
-        onClick={onOpenAddModal}
-        className="mt-6 w-full py-3 rounded-xl bg-[#E8B45A] text-[#111210] text-[14px] font-semibold flex items-center justify-center gap-2"
-      >
-        <Plus className="w-4 h-4" />
-        Add work or song
-      </button>
     </div>
   );
 };

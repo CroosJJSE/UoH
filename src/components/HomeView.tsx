@@ -1,6 +1,6 @@
 import { ArchiveItem, CategoryType, CommunityMember } from '../types';
 import { NotebookPen, Plus } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 interface HomeViewProps {
   items: ArchiveItem[];
   currentUser: CommunityMember;
@@ -44,17 +44,40 @@ export function HomeView({
   onOpenAddModal,
 }: HomeViewProps) {
   const firstName = currentUser.name.split(' ')[0] || 'friend';
+  const greetings = [
+    `කෑම කන්න එන්න, ${firstName}`,
+    `${firstName} did you read my article?`,
+    `${firstName} What God spoke to you today?`,
+  ];
   const featured = items.find((item) => item.images.length > 0) ?? items[0];
   const quoteItem = items.find((item) => item.category === 'wisdom' && item.metadata?.goldenQuote);
-  const recent = items.slice(0, 6);
+  const recent = items.slice(0, 2);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [greetingVisible, setGreetingVisible] = useState(true);
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 0.5;
     }
   }, []);
+
+  useEffect(() => {
+    let timeout: number | undefined;
+    const interval = window.setInterval(() => {
+      setGreetingVisible(false);
+      timeout = window.setTimeout(() => {
+        setGreetingIndex((index) => (index + 1) % greetings.length);
+        setGreetingVisible(true);
+      }, 280);
+    }, 4000);
+
+    return () => {
+      window.clearInterval(interval);
+      if (timeout) window.clearTimeout(timeout);
+    };
+  }, [greetings.length]);
   return (
     <div className="flex flex-col w-full gap-8">
       <section className="relative w-full overflow-hidden rounded-xl bg-[#181714] shadow-md">
@@ -92,8 +115,13 @@ export function HomeView({
             The Hathbodhiya Journal
           </span>
         </div>
-        <h2 className="font-editorial text-[20px] leading-7 text-[#F5EFE3]">
-        කෑම කන්න එන්න, {firstName}
+        <h2
+          className={`font-editorial text-[20px] leading-7 text-[#F5EFE3] transition-opacity duration-300 ${
+            greetingVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-live="polite"
+        >
+          {greetings[greetingIndex]}
         </h2>
         <p className="text-[13px] leading-5 text-[#A8A196]">
         Dinner table will be closed at 8:00 PM.
@@ -138,29 +166,7 @@ export function HomeView({
         </section>
       )}
 
-      <section className="w-full">
-        <div className="relative rounded-xl bg-[#22201D] p-5 shadow-sm overflow-hidden flex flex-col items-center text-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#181714] flex items-center justify-center text-[#E8B45A]">
-            <NotebookPen className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-editorial text-[20px] leading-7 text-[#F5EFE3]">
-              Every member brings a stone to the altar.
-            </p>
-            <p className="text-[13px] leading-5 text-[#6E675D] mt-0.5">
-              Add a story, recipe, photo, or verse for tonight's quiet record.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenAddModal}
-            className="mt-1 w-full py-3 px-5 rounded-lg bg-[#E8B45A] text-[#0d0e0d] text-[14px] font-semibold tracking-wider uppercase flex items-center justify-center gap-2 active:scale-[0.99]"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            Add a Memory
-          </button>
-        </div>
-      </section>
+
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
@@ -187,25 +193,6 @@ export function HomeView({
               </div>
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="w-full">
-        <div className="relative rounded-xl bg-[#181714] p-5 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#E8B45A] tracking-widest uppercase">Words Worth Keeping</span>
-          </div>
-          <blockquote className="font-editorial text-[26px] leading-8 text-[#F5EFE3] italic">
-            “{quoteItem?.metadata?.goldenQuote || 'The table is where strangers become brothers and bread becomes praise.'}”
-          </blockquote>
-          <div className="flex items-center justify-between pt-1 gap-3">
-            <span className="text-[13px] text-[#A8A196] min-w-0 truncate">
-              {quoteItem?.title || 'Fellowship reflection'}
-            </span>
-            <span className="text-[11px] text-[#6E675D] shrink-0">
-              {quoteItem?.metadata?.scripturePassage || quoteItem?.createdAt || ''}
-            </span>
-          </div>
         </div>
       </section>
 
