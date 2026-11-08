@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArchiveItem, CommunityMember, ContributionDraft, recipeDescription } from '../types';
-import { X, Upload, Music2, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
 import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
 import { toUserMessage } from '../lib/errors';
 
@@ -11,13 +11,6 @@ type ComposerDraft = {
   title: string;
   content: string;
   imagePreview: string;
-  medium: string;
-  scriptureVerse: string;
-  readingTime: string;
-  songArtist: string;
-  alexaPrompt: string;
-  lyricsSnippet: string;
-  houseMemory: string;
   goldenQuote: string;
   lifePrinciple: string;
 };
@@ -75,17 +68,6 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Category specific fields
-  // Museum Art / Essay / Song
-  const [medium, setMedium] = useState('');
-  const [scriptureVerse, setScriptureVerse] = useState('');
-  const [readingTime, setReadingTime] = useState('');
-  const [songArtist, setSongArtist] = useState('');
-  const [alexaPrompt, setAlexaPrompt] = useState('');
-  const [lyricsSnippet, setLyricsSnippet] = useState('');
-  const [houseMemory, setHouseMemory] = useState('');
-
-  // Wisdom
   const [goldenQuote, setGoldenQuote] = useState('');
   const [lifePrinciple, setLifePrinciple] = useState('');
   const [hydrated, setHydrated] = useState(false);
@@ -101,33 +83,14 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     title,
     content,
     imagePreview: imagePreview.startsWith('https://') ? imagePreview : '',
-    medium,
-    scriptureVerse,
-    readingTime,
-    songArtist,
-    alexaPrompt,
-    lyricsSnippet,
-    houseMemory,
     goldenQuote,
     lifePrinciple,
   });
 
   const composeContributionDraft = (): ContributionDraft => {
-    const metadata: ArchiveItem['metadata'] = {};
-    if (category === 'museum') {
-      if (subCategory === 'art') {
-        metadata.medium = medium || undefined;
-        metadata.scriptureVerse = scriptureVerse || undefined;
-      } else if (subCategory === 'articles') {
-        metadata.readingTime = readingTime || undefined;
-        metadata.scripturePassage = scriptureVerse || undefined;
-      } else if (subCategory === 'songs') {
-        metadata.songTitle = title;
-        metadata.artist = songArtist || undefined;
-        metadata.alexaPrompt = alexaPrompt || undefined;
-        metadata.lyricsSnippet = lyricsSnippet || undefined;
-        metadata.houseMemory = houseMemory || undefined;
-      }
+    const metadata: ArchiveItem['metadata'] = { ...(editingItem?.metadata ?? {}) };
+    if (category === 'museum' && subCategory === 'songs') {
+      metadata.songTitle = title;
     } else if (category === 'wisdom') {
       metadata.goldenQuote = goldenQuote || undefined;
       metadata.lifePrinciple = lifePrinciple || undefined;
@@ -159,13 +122,6 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     setContent(item ? recipeDescription(item) : saved?.content ?? '');
     setImagePreview(item?.images?.[0] ?? (saved?.imagePreview?.startsWith('https://') ? saved.imagePreview : '') ?? '');
     setImageFile(null);
-    setMedium(item?.metadata?.medium ?? saved?.medium ?? '');
-    setScriptureVerse(item?.metadata?.scriptureVerse ?? item?.metadata?.scripturePassage ?? saved?.scriptureVerse ?? '');
-    setReadingTime(item?.metadata?.readingTime ?? saved?.readingTime ?? '');
-    setSongArtist(item?.metadata?.artist ?? saved?.songArtist ?? '');
-    setAlexaPrompt(item?.metadata?.alexaPrompt ?? saved?.alexaPrompt ?? '');
-    setLyricsSnippet(item?.metadata?.lyricsSnippet ?? saved?.lyricsSnippet ?? '');
-    setHouseMemory(item?.metadata?.houseMemory ?? saved?.houseMemory ?? '');
     setGoldenQuote(item?.metadata?.goldenQuote ?? saved?.goldenQuote ?? '');
     setLifePrinciple(item?.metadata?.lifePrinciple ?? saved?.lifePrinciple ?? '');
     setError(null);
@@ -188,20 +144,16 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     title,
     content,
     imagePreview,
-    medium,
-    scriptureVerse,
-    readingTime,
-    songArtist,
-    alexaPrompt,
-    lyricsSnippet,
-    houseMemory,
     goldenQuote,
     lifePrinciple,
   ]);
 
+  const contentRequired = category === 'recipes';
+
   useEffect(() => {
     if (!isOpen || !hydrated) return;
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim()) return;
+    if (contentRequired && !content.trim()) return;
 
     const timer = window.setTimeout(() => {
       const run = Promise.resolve(savingRef.current).then(async () => {
@@ -232,15 +184,9 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     title,
     content,
     imagePreview,
-    medium,
-    scriptureVerse,
-    readingTime,
-    songArtist,
-    alexaPrompt,
-    lyricsSnippet,
-    houseMemory,
     goldenQuote,
     lifePrinciple,
+    contentRequired,
   ]);
 
   if (!isOpen) return null;
@@ -259,7 +205,8 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim()) return;
+    if (contentRequired && !content.trim()) return;
 
     setBusy(true);
     setError(null);
@@ -439,11 +386,11 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
               {category === 'recipes'
                 ? 'Description *'
                 : subCategory === 'songs'
-                ? 'Why this song matters at Hathbodhiya *'
-                : 'Reflection & Description *'}
+                ? 'Why this song matters at Hathbodhiya'
+                : 'Reflection & Description'}
             </label>
             <textarea
-              required
+              required={contentRequired}
               rows={category === 'recipes' ? 8 : 4}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -455,85 +402,6 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
               className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none leading-relaxed"
             />
           </div>
-
-          {/* Song in Alexa fields */}
-          {category === 'museum' && subCategory === 'songs' && (
-            <div className="space-y-4 p-4 rounded-xl bg-[#111210] border border-[#2E2A25]">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#E8B45A]">
-                <Music2 className="w-4 h-4" />
-                <span>Song Details</span>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[11px] text-[#A8A196] mb-1">Artist / Composer</label>
-                  <input
-                    type="text"
-                    value={songArtist}
-                    onChange={(e) => setSongArtist(e.target.value)}
-                    placeholder="e.g. Audrey Assad / Sovereign Grace"
-                    className="w-full px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-[#A8A196] mb-1">Alexa Command Prompt</label>
-                  <input
-                    type="text"
-                    value={alexaPrompt}
-                    onChange={(e) => setAlexaPrompt(e.target.value)}
-                    placeholder="e.g. Alexa, play Be Thou My Vision"
-                    className="w-full px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-[#A8A196] mb-1">Lyrics Snippet</label>
-                  <textarea
-                    rows={2}
-                    value={lyricsSnippet}
-                    onChange={(e) => setLyricsSnippet(e.target.value)}
-                    placeholder="e.g. Riches I heed not, nor man's empty praise..."
-                    className="w-full px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-[#A8A196] mb-1">House Memory</label>
-                  <input
-                    type="text"
-                    value={houseMemory}
-                    onChange={(e) => setHouseMemory(e.target.value)}
-                    placeholder="e.g. Played on Sunday evenings during cleanup"
-                    className="w-full px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Museum Art fields */}
-          {category === 'museum' && subCategory === 'art' && (
-            <div className="space-y-3 p-4 rounded-xl bg-[#111210] border border-[#2E2A25]">
-              <div>
-                <label className="block text-[11px] text-[#A8A196] mb-1">Art Medium & Tools</label>
-                <input
-                  type="text"
-                  value={medium}
-                  onChange={(e) => setMedium(e.target.value)}
-                  placeholder="e.g. Charcoal on textured paper"
-                  className="w-full px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-[#A8A196] mb-1">Scripture Verse</label>
-                <input
-                  type="text"
-                  value={scriptureVerse}
-                  onChange={(e) => setScriptureVerse(e.target.value)}
-                  placeholder="e.g. Psalm 90:1"
-                  className="w-full px-3 py-1.5 rounded-md bg-[#22201D] border border-[#2E2A25] text-xs text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-                />
-              </div>
-            </div>
-          )}
 
           {/* Wisdom fields */}
           {category === 'wisdom' && (
