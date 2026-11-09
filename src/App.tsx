@@ -298,10 +298,6 @@ export default function App() {
             onOpenProfile={() => setIsProfileModalOpen(true)}
             onExport={() => void exportArchiveJson(items, visibleMembers)}
             onSelectItem={(item) => void handleSelectItem(item)}
-            onOpenAddModal={() => {
-              setEditingItem(null);
-              setIsAddModalOpen(true);
-            }}
           />
         )}
 

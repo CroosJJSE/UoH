@@ -63,7 +63,6 @@ export function HomeView({
     `${firstName} did you read my article?`,
     `${firstName} What God spoke to you today?`,
   ];
-  const featured = items.find((item) => item.images.length > 0) ?? items[0];
   const memories = items.filter((item) => item.category === 'memories');
   const wisdom = items.filter((item) => item.category === 'wisdom');
 
@@ -154,46 +153,7 @@ export function HomeView({
         </p>
       </section>
 
-      {featured && (
-        <section className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => onSelectItem(featured)}
-            className="relative w-full rounded-xl bg-[#22201D] p-1.5 shadow-md overflow-hidden text-left"
-          >
-            {featured.images[0] && (
-              <div className="relative w-full aspect-16/10 rounded-lg overflow-hidden bg-[#181714]">
-                <ArchiveMedia
-                  alt={featured.title}
-                  src={featured.images[0]}
-                  className="w-full h-full object-cover contrast-[1.02] brightness-95"
-                />
-                <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#111210]/80 backdrop-blur-sm">
-                  <span className="text-[11px] text-[#E8B45A] tracking-wider capitalize">
-                    {featured.category.replace('_', ' ')}
-                  </span>
-                </div>
-                <div className="absolute bottom-2.5 left-3 right-3">
-                  <p className="text-[11px] text-[#F5EFE3] italic truncate">{featured.title}</p>
-                </div>
-              </div>
-            )}
-            <div className="p-3 pt-4 flex flex-col gap-1.5">
-              <h1 className="font-editorial text-[28px] leading-9 text-[#F5EFE3]">
-                Hey Alexa play......
-              </h1>
-              <p className="text-[15px] leading-6 text-[#A8A196]">
-                Everybody loves somebody
-              </p>
-            </div>
-          </button>
-        </section>
-      )}
-
       <section className="flex flex-col gap-3">
-        <h3 className="font-editorial text-[20px] text-[#F5EFE3]">
-          Our <span className="italic text-[#ffd187]">Memories</span>
-        </h3>
         {memories.map((item) => (
           <FeedCard key={item.id} item={item} onSelect={onSelectItem} />
         ))}

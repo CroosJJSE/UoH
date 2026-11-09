@@ -2,7 +2,7 @@ import { useMemo, useState, type FC } from 'react';
 import { ArchiveItem, CommunityMember } from '../types';
 import { AdminPanel } from './AdminPanel';
 import { isSteward } from '../services/users';
-import { ArrowLeft, BookOpen, Download, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, Sparkles, X } from 'lucide-react';
 
 interface CommunityWallViewProps {
   members: CommunityMember[];
@@ -11,7 +11,6 @@ interface CommunityWallViewProps {
   onOpenProfile: () => void;
   onExport: () => void;
   onSelectItem: (item: ArchiveItem) => void;
-  onOpenAddModal: () => void;
 }
 
 interface ConstellationSlot {
@@ -123,7 +122,6 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
   onOpenProfile,
   onExport,
   onSelectItem,
-  onOpenAddModal,
 }) => {
   const [historyMember, setHistoryMember] = useState<CommunityMember | null>(null);
 
@@ -352,24 +350,6 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
         </div>
       )}
 
-      {/* Prominent Contribution Action: Offer to the Table */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-[#22201D] to-[#181714] border border-[#2E2A25] shadow-sm">
-        <div className="min-w-0 pr-3">
-          <h4 className="font-editorial text-[18px] text-[#F5EFE3] leading-snug">Offer to the Table</h4>
-          <p className="text-[12px] text-[#A8A196] mt-0.5">
-            Share an artwork, recipe, song, photo, video, or memory.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenAddModal}
-          className="px-4 py-2 rounded-xl bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] font-semibold text-[13px] flex items-center gap-1.5 shrink-0 shadow-md active:scale-95 transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Create Post</span>
-        </button>
-      </div>
-
       {/* Offerings History Drawer / Modal */}
       {historyMember && (
         <div className="space-y-3 bg-[#181714] border border-[#2E2A25] rounded-xl p-4">
@@ -426,92 +406,18 @@ export const CommunityWallView: FC<CommunityWallViewProps> = ({
         </div>
       )}
 
-      {/* Fellowship Directory: All Souls at the Table */}
-      <div className="flex flex-col gap-3 mt-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-editorial text-[22px] text-[#F5EFE3]">All Souls at the Table</h3>
-          <span className="text-[12px] text-[#A8A196]">{members.length} members</span>
-        </div>
-
-        {sortedMembers.map((member, index) => (
-          <div
-            key={member.id}
-            className="p-4 rounded-xl bg-[#22201D] border border-[#2E2A25] flex flex-col gap-3 hover:border-[#423D35] transition-colors"
+      {isSteward(currentUser) && (
+        <div className="pt-2 pb-6 flex justify-center">
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex items-center gap-2 text-[12px] text-[#A8A196] hover:text-[#F5EFE3] py-2 px-4 rounded-lg hover:bg-[#22201D] transition-colors"
           >
-            <div className="flex items-start justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setInspectedMember(member);
-                  setHistoryMember(member);
-                }}
-                className="flex items-center gap-3 text-left min-w-0 flex-1"
-              >
-                {member.avatar ? (
-                  <img
-                    src={member.avatar}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="w-12 h-12 rounded-full object-cover shrink-0 ring-1 ring-[#E8B45A]/30"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-[#181714] flex items-center justify-center text-[#F5EFE3] font-editorial text-[14px] shrink-0 border border-[#2E2A25]">
-                    {getInitials(member.name)}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-editorial text-[18px] text-[#F5EFE3] truncate">
-                      {member.name}
-                    </h4>
-                    {index === 0 && (
-                      <span className="text-[10px] bg-[#E8B45A]/20 text-[#E8B45A] px-2 py-0.5 rounded-full font-medium">
-                        Hearth Pillar
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[12px] text-[#E8B45A] truncate">
-                    {getMemberRole(member, 'Graduate Fellowship')}
-                  </p>
-                </div>
-              </button>
-
-              <div className="text-right shrink-0">
-                <span className="text-[12px] text-[#E8B45A] font-semibold block">
-                  {member.contributionsCount} {member.contributionsCount === 1 ? 'post' : 'posts'}
-                </span>
-              </div>
-            </div>
-
-            <p className="text-[13px] text-[#d3c4b2] italic line-clamp-3">
-              “{member.noteOfGratitude || 'A quiet place at the table.'}”
-            </p>
-
-            <div className="flex items-center justify-between pt-2 border-t border-[#2E2A25]/60 text-[11px]">
-              <span className="text-[#6E675D]">{member.fellowshipYear || 'Fellowship Family'}</span>
-              <button
-                type="button"
-                onClick={() => setHistoryMember(member)}
-                className="text-[#E8B45A] hover:underline font-medium"
-              >
-                View offerings →
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Export Archive Action */}
-      <div className="pt-2 pb-6 flex justify-center">
-        <button
-          type="button"
-          onClick={onExport}
-          className="inline-flex items-center gap-2 text-[12px] text-[#A8A196] hover:text-[#F5EFE3] py-2 px-4 rounded-lg hover:bg-[#22201D] transition-colors"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Export entire archive (JSON)</span>
-        </button>
-      </div>
+            <Download className="w-3.5 h-3.5" />
+            <span>Export entire archive (JSON)</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
