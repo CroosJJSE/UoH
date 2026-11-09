@@ -1,8 +1,9 @@
 import { User, onAuthStateChanged, reload } from 'firebase/auth';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { auth } from '../lib/firebase';
-import { toUserMessage } from '../lib/errors';
+import { isAuthSessionError, toUserMessage } from '../lib/errors';
 import { ensureUserDocuments } from '../services/users';
+import { signOut, signOutIfSessionLost } from '../services/auth';
 import { AccountRecord, CommunityMember } from '../types';
 import { INITIAL_MEMBERS } from '../data/initialData';
 
@@ -74,8 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       await reload(user);
-    } catch {
-      // Ignore transient reload errors
+    } catch (err) {
+      if (isAuthSessionError(err)) {
+        await signOut().catch(() => undefined);
+        setFirebaseUser(null);
+        setAccount(null);
+        setProfile(null);
+        setError(null);
+        return;
+      }
+    }
+    if (!auth.currentUser) {
+      setFirebaseUser(null);
+      if (!isDemoMode) {
+        setAccount(null);
+        setProfile(null);
+      }
+      return;
     }
     setFirebaseUser(auth.currentUser);
 
@@ -91,6 +107,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(docs.profile);
       setError(null);
     } catch (err) {
+      const lost = await signOutIfSessionLost(err);
+      if (lost) {
+        setFirebaseUser(null);
+        setAccount(null);
+        setProfile(null);
+        setError(null);
+        return;
+      }
       setError(toUserMessage(err));
     }
   }, [isDemoMode]);
@@ -111,6 +135,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsubscribe;
   }, [hydrate, isDemoMode, profile, enterDemoMode]);
+
+  useEffect(() => {
+    if (isDemoMode) return;
+
+    const refresh = () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      void user.getIdToken(true).catch(async (err) => {
+        if (isAuthSessionError(err)) {
+          await signOut().catch(() => undefined);
+        }
+      });
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isDemoMode]);
 
   const refreshProfile = useCallback(async () => {
     const user = auth.currentUser;

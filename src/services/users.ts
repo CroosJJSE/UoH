@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
+import { withAuthSession } from './auth';
 import { DEFAULT_AVATAR } from '../lib/constants';
 import { AccountRecord, AccountStatus, CommunityMember, UserRole } from '../types';
 
@@ -188,32 +189,36 @@ export async function updateOwnProfile(
   uid: string,
   updates: Pick<CommunityMember, 'name' | 'avatar' | 'gradDegree' | 'fellowshipYear' | 'noteOfGratitude'>
 ): Promise<void> {
-  await updateDoc(profileRef(uid), {
-    name: updates.name.trim(),
-    avatar: updates.avatar.trim(),
-    gradDegree: (updates.gradDegree ?? '').trim(),
-    fellowshipYear: (updates.fellowshipYear ?? '').trim(),
-    noteOfGratitude: (updates.noteOfGratitude ?? '').trim(),
-    updatedAt: serverTimestamp(),
-  });
+  await withAuthSession(() =>
+    updateDoc(profileRef(uid), {
+      name: updates.name.trim(),
+      avatar: updates.avatar.trim(),
+      gradDegree: (updates.gradDegree ?? '').trim(),
+      fellowshipYear: (updates.fellowshipYear ?? '').trim(),
+      noteOfGratitude: (updates.noteOfGratitude ?? '').trim(),
+      updatedAt: serverTimestamp(),
+    })
+  );
 }
 
 export async function setMemberAccess(
   targetUid: string,
   next: { status: AccountStatus; role: UserRole }
 ): Promise<void> {
-  const batch = writeBatch(db);
-  batch.update(accountRef(targetUid), {
-    status: next.status,
-    role: next.role,
-    updatedAt: serverTimestamp(),
+  await withAuthSession(async () => {
+    const batch = writeBatch(db);
+    batch.update(accountRef(targetUid), {
+      status: next.status,
+      role: next.role,
+      updatedAt: serverTimestamp(),
+    });
+    batch.update(profileRef(targetUid), {
+      status: next.status,
+      role: next.role,
+      updatedAt: serverTimestamp(),
+    });
+    await batch.commit();
   });
-  batch.update(profileRef(targetUid), {
-    status: next.status,
-    role: next.role,
-    updatedAt: serverTimestamp(),
-  });
-  await batch.commit();
 }
 
 export function isSteward(member: CommunityMember | null): boolean {

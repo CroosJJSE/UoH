@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArchiveItem, CommunityMember, ContributionDraft, recipeDescription } from '../types';
-import { X, Upload, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, UtensilsCrossed, Palette, HeartHandshake, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { isCloudinaryConfigured, uploadMedia } from '../services/cloudinary';
+import { ensureAuthSession } from '../services/auth';
 import { toUserMessage } from '../lib/errors';
 import {
   ALLOWED_IMAGE_TYPES,
@@ -12,46 +13,6 @@ import {
 } from '../lib/constants';
 import { isVideoUrl } from '../lib/media';
 import { ArchiveMedia } from './ArchiveMedia';
-
-type ComposerDraft = {
-  id?: string;
-  category: 'museum' | 'recipes' | 'memories' | 'wisdom';
-  subCategory: string;
-  title: string;
-  content: string;
-  imagePreview: string;
-  goldenQuote: string;
-  lifePrinciple: string;
-};
-
-function draftStorageKey(userId: string) {
-  return `uoh-composer-open:${userId}`;
-}
-
-function readComposerDraft(userId: string): ComposerDraft | null {
-  try {
-    const raw = localStorage.getItem(draftStorageKey(userId));
-    return raw ? (JSON.parse(raw) as ComposerDraft) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeComposerDraft(userId: string, draft: ComposerDraft) {
-  try {
-    localStorage.setItem(draftStorageKey(userId), JSON.stringify(draft));
-  } catch {
-    // Ignore quota / private-mode failures.
-  }
-}
-
-function clearComposerDraft(userId: string) {
-  try {
-    localStorage.removeItem(draftStorageKey(userId));
-  } catch {
-    // Ignore storage failures.
-  }
-}
 
 interface AddArchiveModalProps {
   isOpen: boolean;
@@ -77,27 +38,11 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [goldenQuote, setGoldenQuote] = useState('');
   const [lifePrinciple, setLifePrinciple] = useState('');
-  const [hydrated, setHydrated] = useState(false);
-  const draftIdRef = useRef<string | null>(null);
-  const savingRef = useRef<Promise<string | void> | null>(null);
-  const persistBlockedRef = useRef(false);
-  const onSaveRef = useRef(onSave);
-  onSaveRef.current = onSave;
-
-  const composeLocalDraft = (): ComposerDraft => ({
-    id: draftIdRef.current ?? undefined,
-    category,
-    subCategory,
-    title,
-    content,
-    imagePreview: imagePreview.startsWith('https://') ? imagePreview : '',
-    goldenQuote,
-    lifePrinciple,
-  });
 
   const composeContributionDraft = (): ContributionDraft => {
     const metadata: ArchiveItem['metadata'] = { ...(editingItem?.metadata ?? {}) };
@@ -125,22 +70,18 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      setHydrated(false);
-      return;
+    if (!isOpen) return;
+    try {
+      localStorage.removeItem(`uoh-composer-open:${currentUser.id}`);
+    } catch {
+      // Ignore storage failures.
     }
-    persistBlockedRef.current = false;
     const item = editingItem;
-    const saved = !item ? readComposerDraft(currentUser.id) : null;
-    draftIdRef.current = item?.id ?? saved?.id ?? null;
-    setCategory(item?.category ?? saved?.category ?? 'recipes');
-    setSubCategory(
-      item?.subCategory ?? saved?.subCategory ?? (item?.category === 'museum' ? 'art' : 'mains')
-    );
-    setTitle(item?.title ?? saved?.title ?? '');
-    setContent(item ? recipeDescription(item) : saved?.content ?? '');
-    const preview =
-      item?.images?.[0] ?? (saved?.imagePreview?.startsWith('https://') ? saved.imagePreview : '') ?? '';
+    setCategory(item?.category ?? 'recipes');
+    setSubCategory(item?.subCategory ?? (item?.category === 'museum' ? 'art' : 'mains'));
+    setTitle(item?.title ?? '');
+    setContent(item ? recipeDescription(item) : '');
+    const preview = item?.images?.[0] ?? '';
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
@@ -148,76 +89,13 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     setImagePreview(preview);
     setMediaKind(isVideoUrl(preview) ? 'video' : 'image');
     setImageFile(null);
-    setGoldenQuote(item?.metadata?.goldenQuote ?? saved?.goldenQuote ?? '');
-    setLifePrinciple(item?.metadata?.lifePrinciple ?? saved?.lifePrinciple ?? '');
+    setGoldenQuote(item?.metadata?.goldenQuote ?? '');
+    setLifePrinciple(item?.metadata?.lifePrinciple ?? '');
+    setUploadPercent(null);
     setError(null);
-    setHydrated(true);
   }, [isOpen, editingItem, currentUser.id]);
 
-  useEffect(() => {
-    if (!isOpen || !hydrated || editingItem || persistBlockedRef.current) return;
-    const timer = window.setTimeout(() => {
-      if (persistBlockedRef.current) return;
-      writeComposerDraft(currentUser.id, composeLocalDraft());
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [
-    isOpen,
-    hydrated,
-    editingItem,
-    currentUser.id,
-    category,
-    subCategory,
-    title,
-    content,
-    imagePreview,
-    goldenQuote,
-    lifePrinciple,
-  ]);
-
   const contentRequired = category === 'recipes';
-
-  useEffect(() => {
-    if (!isOpen || !hydrated) return;
-    if (!title.trim()) return;
-    if (contentRequired && !content.trim()) return;
-
-    const timer = window.setTimeout(() => {
-      if (persistBlockedRef.current) return;
-      const run = Promise.resolve(savingRef.current).then(async () => {
-        if (persistBlockedRef.current) return;
-        const id = await onSaveRef.current(
-          composeContributionDraft(),
-          draftIdRef.current ?? editingItem?.id ?? undefined
-        );
-        if (persistBlockedRef.current) return id;
-        if (id) {
-          draftIdRef.current = id;
-          writeComposerDraft(currentUser.id, composeLocalDraft());
-        }
-        return id;
-      });
-      savingRef.current = run;
-      void run.finally(() => {
-        if (savingRef.current === run) savingRef.current = null;
-      });
-    }, 800);
-
-    return () => window.clearTimeout(timer);
-  }, [
-    isOpen,
-    hydrated,
-    editingItem,
-    currentUser.id,
-    category,
-    subCategory,
-    title,
-    content,
-    imagePreview,
-    goldenQuote,
-    lifePrinciple,
-    contentRequired,
-  ]);
 
   if (!isOpen) return null;
 
@@ -259,21 +137,20 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
     setError(null);
 
     try {
-      await Promise.resolve(savingRef.current);
+      await ensureAuthSession();
       const draft = composeContributionDraft();
       if (imageFile) {
-        draft.images = [await uploadMedia(imageFile)];
+        setUploadPercent(0);
+        draft.images = [await uploadMedia(imageFile, setUploadPercent)];
       }
 
-      const id = await onSave(draft, draftIdRef.current ?? editingItem?.id ?? undefined);
-      persistBlockedRef.current = true;
-      draftIdRef.current = id ?? null;
-      clearComposerDraft(currentUser.id);
+      await onSave(draft, editingItem?.id);
       onClose();
     } catch (err) {
       setError(toUserMessage(err));
     } finally {
       setBusy(false);
+      setUploadPercent(null);
     }
   };
 
@@ -482,6 +359,23 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
             <label className="block text-xs font-semibold text-[#A8A196] mb-2">
               Attach a photo or video (optional)
             </label>
+            {uploadPercent != null && (
+              <div className="mb-3 rounded-lg bg-[#111210] border border-[#2E2A25] p-3">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="flex items-center gap-1.5 text-[11px] text-[#E8B45A]">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Uploading {mediaKind}…
+                  </span>
+                  <span className="text-[11px] tabular-nums text-[#A8A196]">{uploadPercent}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[#22201D] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#E8B45A] transition-[width] duration-150"
+                    style={{ width: `${uploadPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-4">
               <label className="flex-1 flex flex-col items-center justify-center p-5 border-2 border-dashed border-[#2E2A25] hover:border-[#E8B45A]/50 rounded-xl cursor-pointer bg-[#181714] transition-colors">
                 <Upload className="w-5 h-5 text-[#E8B45A] mb-1.5" />
@@ -573,7 +467,13 @@ export const AddArchiveModal: React.FC<AddArchiveModalProps> = ({
               disabled={busy}
               className="px-5 py-2 rounded-lg text-xs font-semibold text-[#111210] bg-[#E8B45A] hover:bg-[#D4A045] transition-colors shadow-sm cursor-pointer disabled:opacity-60"
             >
-              {busy ? 'Saving…' : editingItem ? 'Save revisions' : 'Preserve in Archive'}
+              {uploadPercent != null
+                ? `Uploading ${uploadPercent}%`
+                : busy
+                  ? 'Saving…'
+                  : editingItem
+                    ? 'Save revisions'
+                    : 'Preserve in Archive'}
             </button>
           </div>
         </form>

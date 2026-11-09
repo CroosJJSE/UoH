@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { toUserMessage } from '../lib/errors';
-import { registerWithEmail, signInWithEmail } from '../services/auth';
+import { registerWithEmail, signInWithEmail, signInWithGoogle } from '../services/auth';
 
 type Mode = 'signin' | 'register';
 
@@ -14,6 +15,19 @@ export function AuthScreen({ onEnterDemo: _onEnterDemo }: AuthScreenProps) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+
+  const handleGoogle = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(toUserMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -55,62 +69,87 @@ export function AuthScreen({ onEnterDemo: _onEnterDemo }: AuthScreenProps) {
           </h1>
         </div>
 
-        <form
-          onSubmit={(event) => void handleSubmit(event)}
-          className="rounded-2xl bg-[#181714]/85 backdrop-blur-md border border-[#2E2A25] p-5 space-y-4 shadow-xl"
-        >
-          <div>
-            <label className="block text-xs text-[#A8A196] mb-1" htmlFor="auth-email">
-              Email
-            </label>
-            <input
-              id="auth-email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-[#A8A196] mb-1" htmlFor="auth-password">
-              Password
-            </label>
-            <input
-              id="auth-password"
-              type="password"
-              required
-              minLength={6}
-              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
-            />
-          </div>
-
-          {error && <p className="text-xs text-[#E8B45A]">{error}</p>}
-
+        <div className="rounded-2xl bg-[#181714]/85 backdrop-blur-md border border-[#2E2A25] p-5 space-y-4 shadow-xl">
           <button
-            type="submit"
+            type="button"
+            onClick={() => void handleGoogle()}
             disabled={busy}
-            className="w-full py-2.5 rounded-lg bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] font-semibold text-sm cursor-pointer disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#22201D]/90 border border-[#2E2A25] hover:border-[#E8B45A]/50 text-sm text-[#F5EFE3] transition-colors cursor-pointer disabled:opacity-60"
           >
-            {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
+            Continue with Google
           </button>
+
+          {error && !emailOpen && <p className="text-xs text-[#E8B45A]">{error}</p>}
 
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              setMode((current) => (current === 'signin' ? 'register' : 'signin'));
-              setError(null);
-            }}
-            className="w-full text-xs text-[#A8A196] hover:text-[#F5EFE3] cursor-pointer disabled:opacity-60"
+            aria-expanded={emailOpen}
+            onClick={() => setEmailOpen((open) => !open)}
+            className="w-full flex items-center justify-center gap-2 text-[11px] uppercase tracking-wider text-[#6E675D] hover:text-[#A8A196] cursor-pointer disabled:opacity-60"
           >
-            {mode === 'signin' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+            <span className="h-px flex-1 bg-[#2E2A25]" />
+            Sign in with email
+            <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${emailOpen ? 'rotate-180' : ''}`} />
+            <span className="h-px flex-1 bg-[#2E2A25]" />
           </button>
-        </form>
+
+          {emailOpen && (
+          <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
+            <div>
+              <label className="block text-xs text-[#A8A196] mb-1" htmlFor="auth-email">
+                Email
+              </label>
+              <input
+                id="auth-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#A8A196] mb-1" htmlFor="auth-password">
+                Password
+              </label>
+              <input
+                id="auth-password"
+                type="password"
+                required
+                minLength={6}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-[#22201D] border border-[#2E2A25] text-sm text-[#F5EFE3] focus:border-[#E8B45A] focus:outline-none"
+              />
+            </div>
+
+            {error && <p className="text-xs text-[#E8B45A]">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full py-2.5 rounded-lg bg-[#E8B45A] hover:bg-[#D4A045] text-[#111210] font-semibold text-sm cursor-pointer disabled:opacity-60"
+            >
+              {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
+            </button>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setMode((current) => (current === 'signin' ? 'register' : 'signin'));
+                setError(null);
+              }}
+              className="w-full text-xs text-[#A8A196] hover:text-[#F5EFE3] cursor-pointer disabled:opacity-60"
+            >
+              {mode === 'signin' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+            </button>
+          </form>
+          )}
+        </div>
       </div>
     </div>
   );

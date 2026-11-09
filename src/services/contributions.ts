@@ -20,6 +20,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { withAuthSession } from './auth';
 import { PAGE_SIZE, COMMENT_PAGE_SIZE, DEFAULT_AVATAR } from '../lib/constants';
 import { ArchiveCategory, ArchiveItem, Comment, CommunityMember, ContributionDraft, recipeDescription } from '../types';
 
@@ -111,22 +112,26 @@ export async function listContributions(options: {
     constraints.push(startAfter(options.cursor));
   }
 
-  const snapshot = await getDocs(query(contributionsCol(), ...constraints));
-  const items = snapshot.docs.map((item: QueryDocumentSnapshot<DocumentData>) =>
-    mapContribution(item.id, item.data() as ContributionDoc)
-  );
-  const nextCursor = snapshot.docs.length === (options.pageSize ?? PAGE_SIZE)
-    ? snapshot.docs[snapshot.docs.length - 1]
-    : null;
+  return withAuthSession(async () => {
+    const snapshot = await getDocs(query(contributionsCol(), ...constraints));
+    const items = snapshot.docs.map((item: QueryDocumentSnapshot<DocumentData>) =>
+      mapContribution(item.id, item.data() as ContributionDoc)
+    );
+    const nextCursor = snapshot.docs.length === (options.pageSize ?? PAGE_SIZE)
+      ? snapshot.docs[snapshot.docs.length - 1]
+      : null;
 
-  return { items, cursor: nextCursor };
+    return { items, cursor: nextCursor };
+  });
 }
 
 export async function getContribution(id: string): Promise<ArchiveItem | null> {
-  const snap = await getDoc(doc(db, 'contributions', id));
-  if (!snap.exists()) return null;
-  const comments = await listComments(id);
-  return mapContribution(id, snap.data() as ContributionDoc, comments);
+  return withAuthSession(async () => {
+    const snap = await getDoc(doc(db, 'contributions', id));
+    if (!snap.exists()) return null;
+    const comments = await listComments(id);
+    return mapContribution(id, snap.data() as ContributionDoc, comments);
+  });
 }
 
 function buildPayload(author: CommunityMember, draft: ContributionDraft): ContributionDoc {
@@ -172,32 +177,36 @@ export async function createContribution(
   draft: ContributionDraft,
   existingId?: string
 ): Promise<ArchiveItem> {
-  const payload = buildPayload(author, draft);
-  const ref = existingId ? doc(db, 'contributions', existingId) : doc(contributionsCol());
+  return withAuthSession(async () => {
+    const payload = buildPayload(author, draft);
+    const ref = existingId ? doc(db, 'contributions', existingId) : doc(contributionsCol());
 
-  try {
-    await setDoc(ref, payload);
-  } catch (err) {
-    if (!isAlreadyExists(err)) throw err;
-    await updateDoc(ref, contentUpdate(draft));
-  }
+    try {
+      await setDoc(ref, payload);
+    } catch (err) {
+      if (!isAlreadyExists(err)) throw err;
+      await updateDoc(ref, contentUpdate(draft));
+    }
 
-  return mapContribution(ref.id, payload);
+    return mapContribution(ref.id, payload);
+  });
 }
 
 export async function updateContribution(
   id: string,
   draft: ContributionDraft
 ): Promise<void> {
-  await updateDoc(doc(db, 'contributions', id), contentUpdate(draft));
+  await withAuthSession(() => updateDoc(doc(db, 'contributions', id), contentUpdate(draft)));
 }
 
 export async function deleteContribution(id: string): Promise<void> {
-  const commentsSnap = await getDocs(collection(db, 'contributions', id, 'comments'));
-  const batch = writeBatch(db);
-  commentsSnap.docs.forEach((commentDoc: QueryDocumentSnapshot<DocumentData>) => batch.delete(commentDoc.ref));
-  batch.delete(doc(db, 'contributions', id));
-  await batch.commit();
+  await withAuthSession(async () => {
+    const commentsSnap = await getDocs(collection(db, 'contributions', id, 'comments'));
+    const batch = writeBatch(db);
+    commentsSnap.docs.forEach((commentDoc: QueryDocumentSnapshot<DocumentData>) => batch.delete(commentDoc.ref));
+    batch.delete(doc(db, 'contributions', id));
+    await batch.commit();
+  });
 }
 
 export async function toggleStar(item: ArchiveItem, uid: string): Promise<ArchiveItem> {
@@ -207,11 +216,13 @@ export async function toggleStar(item: ArchiveItem, uid: string): Promise<Archiv
     : [...item.starredBy, uid];
   const starsCount = starredBy.length;
 
-  await updateDoc(doc(db, 'contributions', item.id), {
-    starredBy,
-    starsCount,
-    updatedAt: serverTimestamp(),
-  });
+  await withAuthSession(() =>
+    updateDoc(doc(db, 'contributions', item.id), {
+      starredBy,
+      starsCount,
+      updatedAt: serverTimestamp(),
+    })
+  );
 
   return { ...item, starredBy, starsCount };
 }
@@ -258,14 +269,16 @@ export async function addComment(
     createdAt: now,
   };
 
-  const batch = writeBatch(db);
   const commentRef = doc(collection(db, 'contributions', item.id, 'comments'));
-  batch.set(commentRef, comment);
-  batch.update(doc(db, 'contributions', item.id), {
-    commentsCount: item.commentsCount + 1,
-    updatedAt: serverTimestamp(),
+  await withAuthSession(async () => {
+    const batch = writeBatch(db);
+    batch.set(commentRef, comment);
+    batch.update(doc(db, 'contributions', item.id), {
+      commentsCount: item.commentsCount + 1,
+      updatedAt: serverTimestamp(),
+    });
+    await batch.commit();
   });
-  await batch.commit();
 
   return {
     id: commentRef.id,

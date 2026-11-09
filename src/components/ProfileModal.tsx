@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CommunityMember } from '../types';
 import { X, FileText, Upload } from 'lucide-react';
-import { signOut } from '../services/auth';
+import { ensureAuthSession, signOut } from '../services/auth';
 import { isCloudinaryConfigured, uploadImage } from '../services/cloudinary';
 import { toUserMessage } from '../lib/errors';
 
@@ -45,6 +45,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setBusy(true);
     setError(null);
     try {
+      await ensureAuthSession();
       const url = await uploadImage(file);
       setAvatar(url);
     } catch (err) {
@@ -59,6 +60,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setBusy(true);
     setError(null);
     try {
+      await ensureAuthSession();
       await onUpdateCurrentUser({
         ...currentUser,
         name: name.trim(),

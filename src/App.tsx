@@ -16,6 +16,7 @@ import { AccessGate } from './components/AccessGate';
 import { useAuth } from './auth/AuthProvider';
 import { PAGE_SIZE } from './lib/constants';
 import { toUserMessage } from './lib/errors';
+import { signOutIfSessionLost } from './services/auth';
 import { listApprovedMembers, updateOwnProfile } from './services/users';
 import {
   createContribution,
@@ -83,7 +84,8 @@ export default function App() {
       }
       setFeedError(null);
     } catch (err) {
-      setFeedError(toUserMessage(err));
+      const lost = await signOutIfSessionLost(err);
+      if (!lost) setFeedError(toUserMessage(err));
     } finally {
       loadingFeedRef.current = false;
       setLoadingFeed(false);
@@ -199,7 +201,8 @@ export default function App() {
       const full = await getContribution(item.id);
       if (full) setSelectedItem(full);
     } catch (err) {
-      setFeedError(toUserMessage(err));
+      const lost = await signOutIfSessionLost(err);
+      if (!lost) setFeedError(toUserMessage(err));
     }
   };
 
@@ -210,7 +213,8 @@ export default function App() {
       setItems((prev) => prev.filter((entry) => entry.id !== item.id));
       setSelectedItem(null);
     } catch (err) {
-      setFeedError(toUserMessage(err));
+      const lost = await signOutIfSessionLost(err);
+      if (!lost) setFeedError(toUserMessage(err));
     }
   };
 

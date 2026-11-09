@@ -28,26 +28,13 @@ export async function uploadImage(file: File): Promise<string> {
     throw new Error('Images must be 8 MB or smaller.');
   }
 
-  const body = new FormData();
-  body.append('file', file);
-  body.append('upload_preset', UPLOAD_PRESET);
-  body.append('folder', 'uoh-archive');
-
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-    method: 'POST',
-    body,
-  });
-
-  const payload = (await response.json()) as { secure_url?: string; error?: { message?: string } };
-
-  if (!response.ok || !payload.secure_url) {
-    throw new Error(payload.error?.message || 'Image upload failed. Please try again.');
-  }
-
-  return payload.secure_url;
+  return postCloudinary(file, 'image');
 }
 
-export async function uploadMedia(file: File): Promise<string> {
+export async function uploadMedia(
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<string> {
   if (!isCloudinaryConfigured()) {
     throw new Error(
       'Media uploads are not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.'
@@ -69,21 +56,44 @@ export async function uploadMedia(file: File): Promise<string> {
     throw new Error('Images must be 8 MB or smaller.');
   }
 
-  const body = new FormData();
-  body.append('file', file);
-  body.append('upload_preset', UPLOAD_PRESET);
-  body.append('folder', 'uoh-archive');
+  return postCloudinary(file, video ? 'video' : 'image', onProgress);
+}
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${video ? 'video' : 'image'}/upload`,
-    { method: 'POST', body }
-  );
+function postCloudinary(
+  file: File,
+  resource: 'image' | 'video',
+  onProgress?: (percent: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('upload_preset', UPLOAD_PRESET);
+    body.append('folder', 'uoh-archive');
 
-  const payload = (await response.json()) as { secure_url?: string; error?: { message?: string } };
-
-  if (!response.ok || !payload.secure_url) {
-    throw new Error(payload.error?.message || 'Upload failed. Please try again.');
-  }
-
-  return payload.secure_url;
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resource}/upload`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      try {
+        const payload = JSON.parse(xhr.responseText) as {
+          secure_url?: string;
+          error?: { message?: string };
+        };
+        if (xhr.status >= 200 && xhr.status < 300 && payload.secure_url) {
+          onProgress?.(100);
+          resolve(payload.secure_url);
+          return;
+        }
+        reject(new Error(payload.error?.message || 'Upload failed. Please try again.'));
+      } catch {
+        reject(new Error('Upload failed. Please try again.'));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Upload failed. Please try again.'));
+    xhr.send(body);
+  });
 }
