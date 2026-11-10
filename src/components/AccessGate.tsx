@@ -5,10 +5,7 @@ import { useEffect, useState } from 'react';
 import { toUserMessage } from '../lib/errors';
 import { Sparkles } from 'lucide-react';
 
-const HOSTS = [
-  { name: 'Subi', role: 'boy', phone: '0772415545', wa: '94772415545' },
-  { name: 'Shamini', role: 'girl', phone: '0765642045', wa: '94765642045' },
-] as const;
+const SUBI = { name: 'Subi', phone: '0772415545', wa: '94772415545' };
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -37,8 +34,6 @@ interface AccessGateProps {
 export function AccessGate({ title, body, firebaseUser, status, onEnterDemo, onRefresh }: AccessGateProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [showHosts, setShowHosts] = useState(false);
-
   useEffect(() => {
     if (status !== 'pending' || !onRefresh) return;
     const id = window.setInterval(() => onRefresh(), 5000);
@@ -75,42 +70,23 @@ export function AccessGate({ title, body, firebaseUser, status, onEnterDemo, onR
             <span className="italic text-[#E8B45A]">Kellie is shouting.</span>
           </p>
           <p className="mt-3 max-w-[20rem] text-sm leading-relaxed text-[#F5EFE3]/85">
-            Let Subi or Shamini know you have arrived. Dont let Kellie run outside.
+            Let Subi know you have arrived. Don’t let Kellie run outside.
           </p>
 
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => setShowHosts((open) => !open)}
-              aria-expanded={showHosts}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform active:scale-95"
-              aria-label="Open WhatsApp contacts"
-            >
-              <WhatsAppIcon className="h-7 w-7" />
-            </button>
-
-            {showHosts && (
-              <div className="mt-3 flex flex-col gap-2">
-                {HOSTS.map((host) => (
-                  <a
-                    key={host.phone}
-                    href={`https://wa.me/${host.wa}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 rounded-2xl bg-[#181714]/90 px-4 py-3 backdrop-blur-sm"
-                  >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2E2A25] text-xl" aria-hidden>
-                      {host.role === 'boy' ? '👦' : '👧'}
-                    </span>
-                    <span className="min-w-0 text-left">
-                      <span className="block text-sm font-semibold text-[#F5EFE3]">{host.name}</span>
-                      <span className="block text-xs text-[#A8A196]">{host.phone}</span>
-                    </span>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
+          <a
+            href={`https://wa.me/${SUBI.wa}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 flex items-center gap-3 self-start rounded-2xl bg-[#181714]/90 px-4 py-3 backdrop-blur-sm"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-white">
+              <WhatsAppIcon className="h-6 w-6" />
+            </span>
+            <span className="min-w-0 text-left">
+              <span className="block text-sm font-semibold text-[#F5EFE3]">{SUBI.name}</span>
+              <span className="block text-xs text-[#A8A196]">{SUBI.phone}</span>
+            </span>
+          </a>
 
           <button
             type="button"

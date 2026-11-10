@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { CommunityMember, UserRole } from '../types';
 import { toUserMessage } from '../lib/errors';
 import { isMaster, listAdminDirectory, listPendingAccounts, setMemberAccess } from '../services/users';
@@ -12,6 +13,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
   const [directory, setDirectory] = useState<Array<{ uid: string; email: string; name: string; role: UserRole; status: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [appointmentsOpen, setAppointmentsOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -95,8 +97,19 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
 
       {isMaster(currentUser) && (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#E8B45A] mb-3">Admin appointments</h4>
-          <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setAppointmentsOpen((open) => !open)}
+            aria-expanded={appointmentsOpen}
+            className="flex w-full items-center justify-between gap-2"
+          >
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#E8B45A]">Admin appointments</h4>
+            <ChevronDown
+              className={`h-4 w-4 text-[#E8B45A] transition-transform ${appointmentsOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {appointmentsOpen && (
+          <div className="space-y-2 mt-3">
             {directory
               .filter((person) => person.uid !== currentUser.id)
               .map((person) => (
@@ -142,6 +155,7 @@ export function AdminPanel({ currentUser }: AdminPanelProps) {
                 </div>
               ))}
           </div>
+          )}
         </div>
       )}
     </div>
