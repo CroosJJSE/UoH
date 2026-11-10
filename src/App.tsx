@@ -140,7 +140,7 @@ export default function App() {
         title="Waiting for a steward"
         body="Your account is registered. A steward will approve you before the archive opens. This keeps the fellowship intimate and known."
         status="pending"
-        onEnterDemo={enterDemoMode}
+        onRefresh={() => void refreshProfile()}
       />
     );
   }
